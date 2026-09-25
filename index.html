@@ -553,12 +553,16 @@
 
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        // Mantém a sessão no navegador e permite trocar de conta pelo seletor do Google.
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.warn);
         const googleProvider = new firebase.auth.GoogleAuthProvider();
         googleProvider.addScope('profile');
         googleProvider.addScope('email');
+        // Sempre mostra o seletor de contas Google.
         googleProvider.setCustomParameters({ prompt: 'select_account' });
+        let authReady = null;
+
+        // A persistência precisa estar definida ANTES de iniciar o fluxo de autenticação.
+        // Isso evita o efeito de autenticar e, logo depois, voltar para a tela de login.
+        authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
         let firebaseUser = null;
         let userProfile = null;
@@ -684,11 +688,12 @@
             initDarkModeUI();
             initChart();
 
-            // Primeiro processa um eventual retorno do login Google por redirect.
+            // Aguarda a persistência LOCAL antes de processar qualquer retorno do Google.
             try {
+                await authReady;
                 const result = await auth.getRedirectResult();
                 if (result && result.user) {
-                    console.log('Login Google concluído por redirect.');
+                    console.log('Login Google concluído por redirect:', result.user.uid);
                 }
             } catch (err) {
                 console.error('Erro no retorno do Google:', err);
@@ -864,9 +869,10 @@
                 : 'Abrindo login Google...';
 
             try {
-                // No celular, redirect é mais confiável e permite usar diretamente as contas
-                // Google já conectadas ao aparelho/navegador. No desktop, popup é mais rápido.
+                await authReady;
+
                 if (isMobileDevice()) {
+                    // No celular, o redirect evita popup bloqueado e retorna para a mesma página.
                     await auth.signInWithRedirect(googleProvider);
                     return;
                 }
@@ -874,7 +880,20 @@
                 await auth.signInWithPopup(googleProvider);
             } catch (error) {
                 console.error('Erro no login Google:', error);
-                status.innerText = getFirebaseAuthError(error);
+
+                // Se o popup do computador for bloqueado, tenta redirect como alternativa.
+                if (!isMobileDevice() && ['auth/popup-blocked', 'auth/popup-closed-by-user'].includes(error?.code)) {
+                    try {
+                        status.innerText = 'Abrindo o Google...';
+                        await auth.signInWithRedirect(googleProvider);
+                        return;
+                    } catch (redirectError) {
+                        console.error('Erro no redirect Google:', redirectError);
+                        status.innerText = getFirebaseAuthError(redirectError);
+                    }
+                } else {
+                    status.innerText = getFirebaseAuthError(error);
+                }
                 if (button) button.disabled = false;
             }
         }
