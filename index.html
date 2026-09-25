@@ -111,8 +111,8 @@
                     <input type="text" id="setupUserName" required placeholder="Ex: João Silva" class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Mensagem de Boas-Vindas / Motivação</label>
-                    <input type="text" id="setupUserSubtext" placeholder="Ex: Mantenha o foco nos seus objetivos!" class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Frase Motivacional / Mensagem</label>
+                    <input type="text" id="setupUserSubtext" value="O seu futuro financeiro é construído pelas escolhas de hoje." class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
                 </div>
                 <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-lg active:scale-98 transition-transform">Entrar no Sistema</button>
             </form>
@@ -128,7 +128,7 @@
                 </div>
                 <div>
                     <h1 class="text-sm font-bold leading-tight" id="headerGreeting">Olá, Usuário!</h1>
-                    <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[180px]" id="headerSubtext">Seu Controle Financeiro</p>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[220px]" id="headerSubtext">O seu futuro financeiro é construído pelas escolhas de hoje.</p>
                 </div>
             </div>
 
@@ -310,7 +310,7 @@
                 <input type="text" id="editUserName" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Mensagem abaixo do nome</label>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Frase Motivacional / Mensagem</label>
                 <input type="text" id="editUserSubtext" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Alterações</button>
@@ -471,6 +471,7 @@
 
     <!-- LÓGICA DO SISTEMA -->
     <script>
+        const DEFAULT_SUBTEXT = "O seu futuro financeiro é construído pelas escolhas de hoje.";
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
         let currentDate = new Date();
@@ -521,7 +522,7 @@
         function saveUserProfile(e) {
             e.preventDefault();
             const name = document.getElementById('setupUserName').value.trim();
-            const subtext = document.getElementById('setupUserSubtext').value.trim() || 'Seu Controle Financeiro';
+            const subtext = document.getElementById('setupUserSubtext').value.trim() || DEFAULT_SUBTEXT;
 
             if (name) {
                 userProfile = { name, subtext };
@@ -534,7 +535,7 @@
         function updateHeaderProfile() {
             if (userProfile) {
                 document.getElementById('headerGreeting').innerText = `Olá, ${userProfile.name}!`;
-                document.getElementById('headerSubtext').innerText = userProfile.subtext;
+                document.getElementById('headerSubtext').innerText = userProfile.subtext || DEFAULT_SUBTEXT;
                 document.getElementById('userAvatar').innerText = userProfile.name.charAt(0).toUpperCase();
             }
         }
@@ -542,7 +543,7 @@
         function openProfileModal() {
             if (userProfile) {
                 document.getElementById('editUserName').value = userProfile.name;
-                document.getElementById('editUserSubtext').value = userProfile.subtext;
+                document.getElementById('editUserSubtext').value = userProfile.subtext || DEFAULT_SUBTEXT;
             }
             openModal('profileModal');
         }
@@ -550,7 +551,7 @@
         function updateUserProfile(e) {
             e.preventDefault();
             const name = document.getElementById('editUserName').value.trim();
-            const subtext = document.getElementById('editUserSubtext').value.trim();
+            const subtext = document.getElementById('editUserSubtext').value.trim() || DEFAULT_SUBTEXT;
 
             if (name) {
                 userProfile = { name, subtext };
