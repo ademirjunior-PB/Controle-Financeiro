@@ -131,11 +131,15 @@
                 </div>
             </div>
 
+            <!-- BOTOES DO CABEÇALHO (ATUALIZAR, PERFIL, TEMA) -->
             <div class="flex items-center space-x-2">
-                <button onclick="openProfileModal()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
+                <button onclick="forceAppUpdate()" title="Buscar Atualizações" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
+                    <i class="fas fa-sync-alt text-xs"></i>
+                </button>
+                <button onclick="openProfileModal()" title="Perfil" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
                     <i class="fas fa-user-cog text-xs"></i>
                 </button>
-                <button id="themeToggleBtn" onclick="toggleDarkMode()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
+                <button id="themeToggleBtn" onclick="toggleDarkMode()" title="Tema" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
                     <i id="themeIcon" class="fas fa-moon text-xs"></i>
                 </button>
             </div>
@@ -470,7 +474,7 @@
         </form>
     </div>
 
-    <!-- LÓGICA DO SISTEMA COM EXPORTAÇÃO / IMPORTAÇÃO DE BACKUP -->
+    <!-- LÓGICA DO SISTEMA -->
     <script>
         const DEFAULT_SUBTEXT = "A sua liberdade financeira começa hoje.";
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -533,6 +537,25 @@
             renderAll();
             document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
         });
+
+        // --- ATUALIZAÇÃO FORÇADA DE CACHE DO APP ---
+        function forceAppUpdate() {
+            if (confirm("Deseja buscar a versão mais recente do aplicativo? Seus dados continuarão salvos.")) {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        for (let registration of registrations) {
+                            registration.unregister();
+                        }
+                    });
+                }
+                if ('caches' in window) {
+                    caches.keys().then(names => {
+                        for (let name of names) caches.delete(name);
+                    });
+                }
+                window.location.reload(true);
+            }
+        }
 
         // --- EXPORTAR E IMPORTAR BACKUP ---
         function exportBackupData() {
