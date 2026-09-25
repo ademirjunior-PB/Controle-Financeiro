@@ -474,70 +474,7 @@
         </form>
     </div>
 
-    <!-- FIREBASE MÓDULOS -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        // CONFIGURAÇÃO DO SEU FIREBASE
-        const firebaseConfig = {
-            apiKey: "SUA_API_KEY",
-            authDomain: "SEU_PROJECT_ID.firebaseapp.com",
-            projectId: "SEU_PROJECT_ID",
-            storageBucket: "SEU_PROJECT_ID.appspot.com",
-            messagingSenderId: "SEU_SENDER_ID",
-            appId: "SEU_APP_ID"
-        };
-
-        let db = null;
-        try {
-            if (firebaseConfig.apiKey !== "SUA_API_KEY") {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                window.firebaseDB = db;
-                console.log("Firebase inicializado com sucesso.");
-            }
-        } catch (e) {
-            console.error("Erro ao conectar Firebase:", e);
-        }
-
-        // Função Global para Salvar Dados no Firebase + Fallback Local
-        window.saveStateToFirebase = async function() {
-            if (window.firebaseDB) {
-                try {
-                    await setDoc(doc(window.firebaseDB, "finances", "userData"), {
-                        userProfile: window.userProfile,
-                        state: window.state
-                    });
-                } catch (e) {
-                    console.error("Erro ao salvar no Firestore:", e);
-                }
-            }
-        };
-
-        // Escutador em Tempo Real (Realtime Sync)
-        if (db) {
-            onSnapshot(doc(db, "finances", "userData"), (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.userProfile) {
-                        window.userProfile = data.userProfile;
-                        window.saveStoredData('finflow_user', JSON.stringify(data.userProfile));
-                    }
-                    if (data.state) {
-                        window.state = data.state;
-                        window.saveStoredData('finflow_txs', JSON.stringify(data.state.transactions));
-                        window.saveStoredData('finflow_fixed', JSON.stringify(data.state.fixedExpenses));
-                        window.saveStoredData('finflow_cats', JSON.stringify(data.state.categories));
-                        window.saveStoredData('finflow_goals', JSON.stringify(data.state.goals));
-                    }
-                    window.renderAll();
-                }
-            });
-        }
-    </script>
-
-    <!-- LÓGICA DO SISTEMA ORIGINAL -->
+    <!-- LÓGICA DO SISTEMA -->
     <script>
         const DEFAULT_SUBTEXT = "A sua liberdade financeira começa hoje.";
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -581,75 +518,165 @@
             categories: JSON.parse(getStoredData('finflow_cats')) || [
                 { id: 'c1', name: 'Alimentação', color: '#f59e0b', limit: 1000 },
                 { id: 'c2', name: 'Moradia', color: '#3b82f6', limit: 1500 },
-                { id: 'c3', name: 'Salário', color: '#10b981', limit: 0 },
-                { id: 'c4', name: 'Lazer', color: '#ec4899', limit: 400 }
+                { id: 'c3', name: 'Transporte', color: '#8b5cf6', limit: 400 },
+                { id: 'c4', name: 'Lazer', color: '#ec4899', limit: 300 },
+                { id: 'c5', name: 'Salário', color: '#10b981', limit: 0 }
             ],
             goals: JSON.parse(getStoredData('finflow_goals')) || [
-                { id: 'g1', title: 'Reserva de Emergência', target: 10000, current: 3500, deadline: '2025-12-31' }
-            ]
+                { id: 'g1', title: 'Reserva de Emergência', target: 10000, current: 3500, deadline: '2026-12-31' }
+            ],
+            currentTxType: 'expense',
+            chart: null,
+            annualChart: null
         };
 
-        window.userProfile = userProfile;
-        window.state = state;
-        window.saveStoredData = saveStoredData;
+        document.addEventListener('DOMContentLoaded', () => {
+            initDarkModeUI();
+            checkUserSetup();
+            initChart();
+            renderAll();
+            document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+        });
 
-        let categoryChart = null;
-        let annualChart = null;
-        let currentTxType = 'expense';
+        // --- ATUALIZAÇÃO FORÇADA DE CACHE DO APP ---
+        function forceAppUpdate() {
+            if (confirm("Deseja buscar a versão mais recente do aplicativo? Seus dados continuarão salvos.")) {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        for (let registration of registrations) {
+                            registration.unregister();
+                        }
+                    });
+                }
+                if ('caches' in window) {
+                    caches.keys().then(names => {
+                        for (let name of names) caches.delete(name);
+                    });
+                }
+                window.location.reload(true);
+            }
+        }
 
-        function initApp() {
-            if (!userProfile) {
+        // --- EXPORTAR E IMPORTAR BACKUP ---
+        function exportBackupData() {
+            const dataToExport = {
+                userProfile: userProfile,
+                transactions: state.transactions,
+                fixedExpenses: state.fixedExpenses,
+                categories: state.categories,
+                goals: state.goals,
+                exportDate: new Date().toISOString()
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+            const downloadAnchor = document.createElement('a');
+            const fileName = `AJ-MyFinance_Backup_${new Date().toISOString().split('T')[0]}.json`;
+
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", fileName);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importBackupData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+
+                    if (importedData.transactions && importedData.categories) {
+                        userProfile = importedData.userProfile || userProfile;
+                        state.transactions = importedData.transactions || [];
+                        state.fixedExpenses = importedData.fixedExpenses || [];
+                        state.categories = importedData.categories || [];
+                        state.goals = importedData.goals || [];
+
+                        saveStoredData('finflow_user', JSON.stringify(userProfile));
+                        saveStoredData('finflow_setup_completed', 'true');
+                        saveData();
+
+                        alert('Backup restaurado com sucesso!');
+                        closeAllModals();
+                    } else {
+                        alert('Arquivo de backup inválido.');
+                    }
+                } catch (err) {
+                    alert('Erro ao carregar arquivo de backup.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function checkUserSetup() {
+            const isConfigured = getStoredData('finflow_setup_completed');
+            
+            if (!userProfile || isConfigured !== 'true') {
                 document.getElementById('welcomeScreen').classList.remove('hidden');
             } else {
                 document.getElementById('welcomeScreen').classList.add('hidden');
-                updateProfileUI();
+                updateHeaderProfile();
             }
-            renderAll();
         }
 
         function saveUserProfile(e) {
             e.preventDefault();
             const name = document.getElementById('setupUserName').value.trim();
             const subtext = document.getElementById('setupUserSubtext').value.trim() || DEFAULT_SUBTEXT;
-            if (!name) return;
 
-            userProfile = { name, subtext };
-            window.userProfile = userProfile;
-            saveStoredData('finflow_user', JSON.stringify(userProfile));
-            if (window.saveStateToFirebase) window.saveStateToFirebase();
-            
-            document.getElementById('welcomeScreen').classList.add('hidden');
-            updateProfileUI();
+            if (name) {
+                userProfile = { name, subtext };
+                saveStoredData('finflow_user', JSON.stringify(userProfile));
+                saveStoredData('finflow_setup_completed', 'true');
+                
+                document.getElementById('welcomeScreen').classList.add('hidden');
+                updateHeaderProfile();
+            }
+        }
+
+        function updateHeaderProfile() {
+            if (userProfile) {
+                document.getElementById('headerGreeting').innerText = `Olá, ${userProfile.name}!`;
+                document.getElementById('headerSubtext').innerText = userProfile.subtext || DEFAULT_SUBTEXT;
+                document.getElementById('userAvatar').innerText = userProfile.name.charAt(0).toUpperCase();
+            }
+        }
+
+        function openProfileModal() {
+            if (userProfile) {
+                document.getElementById('editUserName').value = userProfile.name;
+                document.getElementById('editUserSubtext').value = userProfile.subtext || DEFAULT_SUBTEXT;
+            }
+            openModal('profileModal');
         }
 
         function updateUserProfile(e) {
             e.preventDefault();
             const name = document.getElementById('editUserName').value.trim();
             const subtext = document.getElementById('editUserSubtext').value.trim() || DEFAULT_SUBTEXT;
-            if (!name) return;
 
-            userProfile = { name, subtext };
-            window.userProfile = userProfile;
-            saveStoredData('finflow_user', JSON.stringify(userProfile));
-            if (window.saveStateToFirebase) window.saveStateToFirebase();
-
-            updateProfileUI();
-            closeAllModals();
+            if (name) {
+                userProfile = { name, subtext };
+                saveStoredData('finflow_user', JSON.stringify(userProfile));
+                updateHeaderProfile();
+                closeAllModals();
+            }
         }
 
-        function updateProfileUI() {
-            if (!userProfile) return;
-            document.getElementById('headerGreeting').textContent = `Olá, ${userProfile.name}!`;
-            document.getElementById('headerSubtext').textContent = userProfile.subtext;
-            document.getElementById('userAvatar').textContent = userProfile.name.charAt(0).toUpperCase();
-        }
-
-        function saveState() {
+        function saveData() {
             saveStoredData('finflow_txs', JSON.stringify(state.transactions));
             saveStoredData('finflow_fixed', JSON.stringify(state.fixedExpenses));
             saveStoredData('finflow_cats', JSON.stringify(state.categories));
             saveStoredData('finflow_goals', JSON.stringify(state.goals));
-            if (window.saveStateToFirebase) window.saveStateToFirebase();
+            renderAll();
+        }
+
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            renderAll();
         }
 
         function renderAll() {
@@ -659,497 +686,21 @@
             renderFixedExpenses();
             renderBudgets();
             renderGoals();
-            populateCategorySelects();
-        }
-
-        function changeMonth(delta) {
-            currentDate.setMonth(currentDate.getMonth() + delta);
-            renderAll();
+            renderCategoryOptions();
         }
 
         function updateMonthLabel() {
-            const label = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-            document.getElementById('currentMonthLabel').textContent = label;
-        }
-
-        function getCurrentMonthKey() {
+            const m = monthNames[currentDate.getMonth()];
             const y = currentDate.getFullYear();
-            const m = String(currentDate.getMonth() + 1).padStart(2, '0');
-            return `${y}-${m}`;
+            document.getElementById('currentMonthLabel').innerText = `${m} ${y}`;
         }
 
-        function renderDashboard() {
-            const monthKey = getCurrentMonthKey();
-            const monthTxs = state.transactions.filter(t => t.date.startsWith(monthKey));
-
-            const income = monthTxs.filter(t => t.type === 'income').reduce((acc, t) => acc + Number(t.amount), 0);
-            const expense = monthTxs.filter(t => t.type === 'expense').reduce((acc, t) => acc + Number(t.amount), 0);
-            const balance = income - expense;
-
-            document.getElementById('dashIncome').textContent = formatCurrency(income);
-            document.getElementById('dashExpense').textContent = formatCurrency(expense);
-            document.getElementById('dashBalance').textContent = formatCurrency(balance);
-
-            const recentList = document.getElementById('dashRecentList');
-            recentList.innerHTML = '';
-
-            const sorted = [...monthTxs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-
-            if (sorted.length === 0) {
-                recentList.innerHTML = `<p class="text-[11px] text-gray-400 text-center py-2">Nenhuma transação neste mês.</p>`;
-            } else {
-                sorted.forEach(t => {
-                    const isInc = t.type === 'income';
-                    const item = document.createElement('div');
-                    item.className = 'flex justify-between items-center p-2 rounded-xl bg-gray-50 dark:bg-gray-700/50';
-                    item.innerHTML = `
-                        <div>
-                            <div class="text-xs font-bold">${t.desc}</div>
-                            <div class="text-[10px] text-gray-400">${t.category} • ${t.paymentMethod}</div>
-                        </div>
-                        <div class="text-xs font-bold ${isInc ? 'text-emerald-500' : 'text-rose-500'}">
-                            ${isInc ? '+' : '-'} ${formatCurrency(t.amount)}
-                        </div>
-                    `;
-                    recentList.appendChild(item);
-                });
-            }
-
-            renderCategoryChart(monthTxs);
-        }
-
-        function renderCategoryChart(monthTxs) {
-            const ctx = document.getElementById('categoryChartMobile').getContext('2d');
-            
-            const expenses = monthTxs.filter(t => t.type === 'expense');
-            const catTotals = {};
-
-            expenses.forEach(t => {
-                catTotals[t.category] = (catTotals[t.category] || 0) + Number(t.amount);
-            });
-
-            const labels = Object.keys(catTotals);
-            const data = Object.values(catTotals);
-
-            const bgColors = labels.map(l => {
-                const found = state.categories.find(c => c.name === l);
-                return found ? found.color : '#9ca3af';
-            });
-
-            if (categoryChart) categoryChart.destroy();
-
-            if (data.length === 0) {
-                categoryChart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Sem Despesas'],
-                        datasets: [{ data: [1], backgroundColor: ['#e5e7eb'] }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-                return;
-            }
-
-            categoryChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: bgColors,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
-                    }
-                }
-            });
-        }
-
-        function renderTransactions() {
-            const list = document.getElementById('fullTxList');
-            list.innerHTML = '';
-
-            const search = document.getElementById('txSearch').value.toLowerCase();
-            const typeFilter = document.getElementById('txTypeFilter').value;
-            const catFilter = document.getElementById('txCatFilter').value;
-
-            const monthKey = getCurrentMonthKey();
-            let filtered = state.transactions.filter(t => t.date.startsWith(monthKey));
-
-            if (search) filtered = filtered.filter(t => t.desc.toLowerCase().includes(search));
-            if (typeFilter !== 'all') filtered = filtered.filter(t => t.type === typeFilter);
-            if (catFilter !== 'all') filtered = filtered.filter(t => t.category === catFilter);
-
-            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            if (filtered.length === 0) {
-                list.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Nenhuma transação encontrada.</p>`;
-                return;
-            }
-
-            filtered.forEach(t => {
-                const isInc = t.type === 'income';
-                const div = document.createElement('div');
-                div.className = 'flex justify-between items-center p-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm';
-                div.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl ${isInc ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'} flex items-center justify-center text-xs">
-                            <i class="fas ${isInc ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
-                        </div>
-                        <div>
-                            <div class="text-xs font-bold">${t.desc}</div>
-                            <div class="text-[10px] text-gray-400">${t.category} • ${t.paymentMethod} • ${formatDate(t.date)}</div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold ${isInc ? 'text-emerald-500' : 'text-rose-500'}">
-                            ${isInc ? '+' : '-'} ${formatCurrency(t.amount)}
-                        </span>
-                        <button onclick="deleteTx('${t.id}')" class="text-gray-400 hover:text-rose-500 p-1">
-                            <i class="fas fa-trash text-xs"></i>
-                        </button>
-                    </div>
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        function renderFixedExpenses() {
-            const list = document.getElementById('fixedList');
-            list.innerHTML = '';
-
-            if (state.fixedExpenses.length === 0) {
-                list.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Nenhuma despesa fixa cadastrada.</p>`;
-                return;
-            }
-
-            const monthKey = getCurrentMonthKey();
-
-            state.fixedExpenses.forEach(f => {
-                const paid = state.transactions.some(t => t.fixedId === f.id && t.date.startsWith(monthKey));
-
-                const div = document.createElement('div');
-                div.className = 'p-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between';
-                div.innerHTML = `
-                    <div>
-                        <div class="text-xs font-bold">${f.desc}</div>
-                        <div class="text-[10px] text-gray-400">Vence dia ${f.day} • ${f.category}</div>
-                        <div class="text-xs font-bold text-rose-500 mt-1">${formatCurrency(f.amount)}</div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        ${paid 
-                            ? `<span class="text-[10px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-xl font-bold"><i class="fas fa-check mr-1"></i> Pago</span>`
-                            : `<button onclick="payFixed('${f.id}')" class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-xl font-medium active:scale-95 transition-transform">Pagar</button>`
-                        }
-                        <button onclick="deleteFixed('${f.id}')" class="text-gray-400 hover:text-rose-500 p-1">
-                            <i class="fas fa-trash text-xs"></i>
-                        </button>
-                    </div>
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        function payFixed(fixedId) {
-            const fixed = state.fixedExpenses.find(f => f.id === fixedId);
-            if (!fixed) return;
-
-            const y = currentDate.getFullYear();
-            const m = String(currentDate.getMonth() + 1).padStart(2, '0');
-            const d = String(fixed.day).padStart(2, '0');
-            const dateStr = `${y}-${m}-${d}`;
-
-            const newTx = {
-                id: Date.now().toString(),
-                fixedId: fixed.id,
-                type: 'expense',
-                desc: fixed.desc,
-                amount: fixed.amount,
-                category: fixed.category,
-                paymentMethod: fixed.paymentMethod || 'Pix',
-                date: dateStr
-            };
-
-            state.transactions.push(newTx);
-            saveState();
-            renderAll();
-        }
-
-        function renderBudgets() {
-            const list = document.getElementById('budgetList');
-            list.innerHTML = '';
-
-            const monthKey = getCurrentMonthKey();
-            const monthTxs = state.transactions.filter(t => t.date.startsWith(monthKey) && t.type === 'expense');
-
-            state.categories.forEach(c => {
-                const totalSpent = monthTxs.filter(t => t.category === c.name).reduce((acc, t) => acc + Number(t.amount), 0);
-                const limit = Number(c.limit) || 0;
-                const pct = limit > 0 ? Math.min(100, Math.round((totalSpent / limit) * 100)) : 0;
-
-                const div = document.createElement('div');
-                div.className = 'p-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2';
-                div.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full" style="background-color: ${c.color}"></span>
-                            <span class="text-xs font-bold">${c.name}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-bold">${formatCurrency(totalSpent)} ${limit > 0 ? '/ ' + formatCurrency(limit) : ''}</span>
-                            <button onclick="deleteCategory('${c.id}')" class="text-gray-400 hover:text-rose-500 p-1">
-                                <i class="fas fa-trash text-xs"></i>
-                            </button>
-                        </div>
-                    </div>
-                    ${limit > 0 ? `
-                        <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                            <div class="h-full ${pct >= 100 ? 'bg-rose-500' : 'bg-brand-600'}" style="width: ${pct}%"></div>
-                        </div>
-                    ` : ''}
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        function renderGoals() {
-            const list = document.getElementById('goalsList');
-            list.innerHTML = '';
-
-            if (state.goals.length === 0) {
-                list.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Nenhuma meta cadastrada.</p>`;
-                return;
-            }
-
-            state.goals.forEach(g => {
-                const pct = Math.min(100, Math.round((g.current / g.target) * 100));
-
-                const div = document.createElement('div');
-                div.className = 'p-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2';
-                div.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <div class="text-xs font-bold">${g.title}</div>
-                            <div class="text-[10px] text-gray-400">Até ${formatDate(g.deadline)}</div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-bold text-brand-600 dark:text-brand-400">${formatCurrency(g.current)} / ${formatCurrency(g.target)}</span>
-                            <button onclick="deleteGoal('${g.id}')" class="text-gray-400 hover:text-rose-500 p-1">
-                                <i class="fas fa-trash text-xs"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                        <div class="h-full bg-emerald-500" style="width: ${pct}%"></div>
-                    </div>
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        function populateCategorySelects() {
-            const txCat = document.getElementById('txCategory');
-            const fixedCat = document.getElementById('fixedCategory');
-            const filterCat = document.getElementById('txCatFilter');
-
-            txCat.innerHTML = '';
-            fixedCat.innerHTML = '';
-            filterCat.innerHTML = '<option value="all">Todas categorias</option>';
-
-            state.categories.forEach(c => {
-                txCat.innerHTML += `<option value="${c.name}">${c.name}</option>`;
-                fixedCat.innerHTML += `<option value="${c.name}">${c.name}</option>`;
-                filterCat.innerHTML += `<option value="${c.name}">${c.name}</option>`;
-            });
-        }
-
-        // --- NAVEGAÇÃO E MODAIS ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.remove('text-brand-600', 'dark:text-brand-400');
-                el.classList.add('text-gray-400');
-            });
-
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            const activeNav = document.getElementById(`nav-${tabId}`);
-            activeNav.classList.remove('text-gray-400');
-            activeNav.classList.add('text-brand-600', 'dark:text-brand-400');
-        }
 
-        function openProfileModal() {
-            if (userProfile) {
-                document.getElementById('editUserName').value = userProfile.name;
-                document.getElementById('editUserSubtext').value = userProfile.subtext;
-            }
-            openModal('profileModal');
-        }
-
-        function openTxModal() {
-            document.getElementById('txForm').reset();
-            document.getElementById('txId').value = '';
-            document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
-            setTxType('expense');
-            openModal('txModal');
-        }
-
-        function setTxType(type) {
-            currentTxType = type;
-            const expBtn = document.getElementById('typeExpenseBtn');
-            const incBtn = document.getElementById('typeIncomeBtn');
-
-            if (type === 'expense') {
-                expBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-600 shadow-sm text-rose-600';
-                incBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-gray-500';
-            } else {
-                incBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-600 shadow-sm text-emerald-600';
-                expBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-gray-500';
-            }
-        }
-
-        function saveTransaction(e) {
-            e.preventDefault();
-            const id = document.getElementById('txId').value || Date.now().toString();
-            const desc = document.getElementById('txDesc').value.trim();
-            const amount = parseFloat(document.getElementById('txAmount').value);
-            const category = document.getElementById('txCategory').value;
-            const paymentMethod = document.getElementById('txPaymentMethod').value;
-            const date = document.getElementById('txDate').value;
-
-            const existingIdx = state.transactions.findIndex(t => t.id === id);
-            const txData = { id, type: currentTxType, desc, amount, category, paymentMethod, date };
-
-            if (existingIdx >= 0) {
-                state.transactions[existingIdx] = txData;
-            } else {
-                state.transactions.push(txData);
-            }
-
-            saveState();
-            closeAllModals();
-            renderAll();
-        }
-
-        function deleteTx(id) {
-            state.transactions = state.transactions.filter(t => t.id !== id);
-            saveState();
-            renderAll();
-        }
-
-        function openFixedModal() {
-            document.getElementById('fixedForm').reset();
-            openModal('fixedModal');
-        }
-
-        function saveFixed(e) {
-            e.preventDefault();
-            const id = Date.now().toString();
-            const desc = document.getElementById('fixedDesc').value.trim();
-            const amount = parseFloat(document.getElementById('fixedAmount').value);
-            const day = parseInt(document.getElementById('fixedDay').value);
-            const category = document.getElementById('fixedCategory').value;
-            const paymentMethod = document.getElementById('fixedPaymentMethod').value;
-
-            state.fixedExpenses.push({ id, desc, amount, day, category, paymentMethod });
-            saveState();
-            closeAllModals();
-            renderAll();
-        }
-
-        function deleteFixed(id) {
-            state.fixedExpenses = state.fixedExpenses.filter(f => f.id !== id);
-            saveState();
-            renderAll();
-        }
-
-        function openCategoryModal() {
-            document.getElementById('categoryForm').reset();
-            openModal('categoryModal');
-        }
-
-        function saveCategory(e) {
-            e.preventDefault();
-            const id = Date.now().toString();
-            const name = document.getElementById('catName').value.trim();
-            const color = document.getElementById('catColor').value;
-            const limit = parseFloat(document.getElementById('catLimit').value) || 0;
-
-            state.categories.push({ id, name, color, limit });
-            saveState();
-            closeAllModals();
-            renderAll();
-        }
-
-        function deleteCategory(id) {
-            state.categories = state.categories.filter(c => c.id !== id);
-            saveState();
-            renderAll();
-        }
-
-        function openGoalModal() {
-            document.getElementById('goalForm').reset();
-            openModal('goalModal');
-        }
-
-        function saveGoal(e) {
-            e.preventDefault();
-            const id = Date.now().toString();
-            const title = document.getElementById('goalTitle').value.trim();
-            const target = parseFloat(document.getElementById('goalTarget').value);
-            const current = parseFloat(document.getElementById('goalCurrent').value);
-            const deadline = document.getElementById('goalDeadline').value;
-
-            state.goals.push({ id, title, target, current, deadline });
-            saveState();
-            closeAllModals();
-            renderAll();
-        }
-
-        function deleteGoal(id) {
-            state.goals = state.goals.filter(g => g.id !== id);
-            saveState();
-            renderAll();
-        }
-
-        function openReportModal() {
-            openModal('reportModal');
-            renderAnnualReport();
-        }
-
-        function renderAnnualReport() {
-            const ctx = document.getElementById('annualComparisonChart').getContext('2d');
-            const year = currentDate.getFullYear();
-
-            const monthsData = Array.from({ length: 12 }, (_, i) => {
-                const monthKey = `${year}-${String(i + 1).padStart(2, '0')}`;
-                const txs = state.transactions.filter(t => t.date.startsWith(monthKey));
-                const inc = txs.filter(t => t.type === 'income').reduce((acc, t) => acc + Number(t.amount), 0);
-                const exp = txs.filter(t => t.type === 'expense').reduce((acc, t) => acc + Number(t.amount), 0);
-                return { inc, exp };
-            });
-
-            if (annualChart) annualChart.destroy();
-
-            annualChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: monthNames.map(m => m.substring(0, 3)),
-                    datasets: [
-                        { label: 'Receitas', data: monthsData.map(m => m.inc), backgroundColor: '#10b981' },
-                        { label: 'Despesas', data: monthsData.map(m => m.exp), backgroundColor: '#f43f5e' }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } }
-                }
-            });
+            document.querySelectorAll('.nav-item').forEach(el => el.className = 'nav-item flex-1 flex flex-col items-center py-1 text-gray-400');
+            document.getElementById(`nav-${tabId}`).className = 'nav-item flex-1 flex flex-col items-center py-1 text-brand-600 dark:text-brand-400';
         }
 
         function openModal(id) {
@@ -1162,65 +713,524 @@
             document.querySelectorAll('.bottom-sheet').forEach(el => el.classList.remove('active'));
         }
 
+        function setTxType(type) {
+            state.currentTxType = type;
+            const expenseBtn = document.getElementById('typeExpenseBtn');
+            const incomeBtn = document.getElementById('typeIncomeBtn');
+
+            if (type === 'expense') {
+                expenseBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-600 shadow-sm text-rose-600';
+                incomeBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-gray-500';
+            } else {
+                incomeBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-600 shadow-sm text-emerald-600';
+                expenseBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-gray-500';
+            }
+        }
+
+        function openTxModal(tx = null) {
+            if (tx) {
+                document.getElementById('txId').value = tx.id;
+                document.getElementById('txDesc').value = tx.desc;
+                document.getElementById('txAmount').value = tx.amount;
+                document.getElementById('txCategory').value = tx.category;
+                document.getElementById('txPaymentMethod').value = tx.paymentMethod || 'Pix';
+                document.getElementById('txDate').value = tx.date;
+                document.getElementById('txModalTitle').innerText = 'Editar Transação';
+                setTxType(tx.type);
+            } else {
+                document.getElementById('txForm').reset();
+                document.getElementById('txId').value = '';
+                document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('txModalTitle').innerText = 'Nova Transação';
+                setTxType('expense');
+            }
+            openModal('txModal');
+        }
+
+        function saveTransaction(e) {
+            e.preventDefault();
+            const id = document.getElementById('txId').value;
+            const newTx = {
+                id: id || Date.now().toString(),
+                desc: document.getElementById('txDesc').value,
+                amount: parseFloat(document.getElementById('txAmount').value),
+                category: document.getElementById('txCategory').value,
+                paymentMethod: document.getElementById('txPaymentMethod').value,
+                type: state.currentTxType,
+                date: document.getElementById('txDate').value
+            };
+
+            if (id) {
+                const idx = state.transactions.findIndex(t => t.id === id);
+                if (idx !== -1) state.transactions[idx] = newTx;
+            } else {
+                state.transactions.unshift(newTx);
+            }
+
+            saveData();
+            closeAllModals();
+        }
+
+        function deleteTx(id) {
+            if (confirm('Deseja excluir esta transação?')) {
+                state.transactions = state.transactions.filter(t => t.id !== id);
+                saveData();
+            }
+        }
+
+        function getFilteredTransactionsForCurrentMonth() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            return state.transactions.filter(t => {
+                const tDate = new Date(t.date + 'T00:00:00');
+                return tDate.getFullYear() === year && tDate.getMonth() === month;
+            });
+        }
+
+        function renderDashboard() {
+            const monthTxs = getFilteredTransactionsForCurrentMonth();
+            const income = monthTxs.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+            const expense = monthTxs.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+            const balance = income - expense;
+
+            document.getElementById('dashIncome').innerText = `R$ ${income.toFixed(2)}`;
+            document.getElementById('dashExpense').innerText = `R$ ${expense.toFixed(2)}`;
+            document.getElementById('dashBalance').innerText = `R$ ${balance.toFixed(2)}`;
+
+            const recent = monthTxs.slice(0, 4);
+            const recentList = document.getElementById('dashRecentList');
+            recentList.innerHTML = recent.map(t => `
+                <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-none">
+                    <div>
+                        <p class="text-xs font-semibold">${t.desc}</p>
+                        <span class="text-[10px] text-gray-400">${t.category} • ${t.paymentMethod || 'Pix'}</span>
+                    </div>
+                    <span class="text-xs font-bold ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}">
+                        ${t.type === 'income' ? '+' : '-'} R$ ${t.amount.toFixed(2)}
+                    </span>
+                </div>
+            `).join('') || '<p class="text-xs text-gray-400">Nenhuma transação neste mês.</p>';
+
+            updateChart(monthTxs);
+        }
+
+        function renderTransactions() {
+            const monthTxs = getFilteredTransactionsForCurrentMonth();
+            const search = document.getElementById('txSearch').value.toLowerCase();
+            const type = document.getElementById('txTypeFilter').value;
+            const cat = document.getElementById('txCatFilter').value;
+
+            const filtered = monthTxs.filter(t => {
+                const matchesSearch = t.desc.toLowerCase().includes(search);
+                const matchesType = type === 'all' || t.type === type;
+                const matchesCat = cat === 'all' || t.category === cat;
+                return matchesSearch && matchesType && matchesCat;
+            });
+
+            const list = document.getElementById('fullTxList');
+            list.innerHTML = filtered.map(t => `
+                <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex justify-between items-center">
+                    <div>
+                        <p class="text-xs font-bold">${t.desc}</p>
+                        <p class="text-[10px] text-gray-400">${t.category} • ${t.paymentMethod || 'Pix'} • ${t.date}</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xs font-bold ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}">
+                            ${t.type === 'income' ? '+' : '-'} R$ ${t.amount.toFixed(2)}
+                        </span>
+                        <button onclick="openTxModal(${JSON.stringify(t).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-xs">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteTx('${t.id}')" class="text-gray-300 hover:text-rose-500 text-xs">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma transação encontrada no mês.</p>';
+        }
+
+        function renderFixedExpenses() {
+            const list = document.getElementById('fixedList');
+            const currentMonthTxs = getFilteredTransactionsForCurrentMonth();
+
+            list.innerHTML = state.fixedExpenses.map(f => {
+                const isPaid = currentMonthTxs.some(t => t.desc.includes(f.desc) && t.type === 'expense');
+
+                return `
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex justify-between items-center">
+                        <div>
+                            <p class="text-xs font-bold">${f.desc}</p>
+                            <p class="text-[10px] text-gray-400">Vence dia ${f.day} • ${f.category} • ${f.paymentMethod}</p>
+                            <span class="text-xs font-bold text-gray-800 dark:text-gray-100 mt-1 block">R$ ${f.amount.toFixed(2)}</span>
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            ${isPaid 
+                                ? `<span class="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 font-bold px-2.5 py-1 rounded-lg"><i class="fas fa-check mr-1"></i>Pago</span>`
+                                : `<button onclick="confirmFixedPayment('${f.id}')" class="text-xs bg-brand-600 text-white font-bold px-3 py-1.5 rounded-xl shadow-sm active:scale-95 transition-transform">Confirmar</button>`
+                            }
+                            <div class="flex items-center gap-2">
+                                <button onclick="openFixedModal(${JSON.stringify(f).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-[10px]"><i class="fas fa-edit mr-0.5"></i>Editar</button>
+                                <button onclick="deleteFixed('${f.id}')" class="text-gray-300 hover:text-rose-500 text-[10px]"><i class="fas fa-trash mr-0.5"></i>Remover</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma despesa fixa cadastrada.</p>';
+        }
+
+        function openFixedModal(fixed = null) {
+            if (fixed) {
+                document.getElementById('fixedId').value = fixed.id;
+                document.getElementById('fixedDesc').value = fixed.desc;
+                document.getElementById('fixedAmount').value = fixed.amount;
+                document.getElementById('fixedDay').value = fixed.day;
+                document.getElementById('fixedCategory').value = fixed.category;
+                document.getElementById('fixedPaymentMethod').value = fixed.paymentMethod || 'Pix';
+                document.getElementById('fixedModalTitle').innerText = 'Editar Despesa Fixa';
+            } else {
+                document.getElementById('fixedForm').reset();
+                document.getElementById('fixedId').value = '';
+                document.getElementById('fixedModalTitle').innerText = 'Nova Despesa Fixa';
+            }
+            openModal('fixedModal');
+        }
+
+        function saveFixed(e) {
+            e.preventDefault();
+            const id = document.getElementById('fixedId').value;
+            const fixedData = {
+                id: id || Date.now().toString(),
+                desc: document.getElementById('fixedDesc').value,
+                amount: parseFloat(document.getElementById('fixedAmount').value),
+                day: parseInt(document.getElementById('fixedDay').value),
+                category: document.getElementById('fixedCategory').value,
+                paymentMethod: document.getElementById('fixedPaymentMethod').value
+            };
+
+            if (id) {
+                const idx = state.fixedExpenses.findIndex(f => f.id === id);
+                if (idx !== -1) state.fixedExpenses[idx] = fixedData;
+            } else {
+                state.fixedExpenses.push(fixedData);
+            }
+
+            saveData();
+            closeAllModals();
+        }
+
+        function deleteFixed(id) {
+            if (confirm('Excluir esta despesa fixa?')) {
+                state.fixedExpenses = state.fixedExpenses.filter(f => f.id !== id);
+                saveData();
+            }
+        }
+
+        function confirmFixedPayment(id) {
+            const fixed = state.fixedExpenses.find(f => f.id === id);
+            if (!fixed) return;
+
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(fixed.day).padStart(2, '0');
+
+            const paidTx = {
+                id: Date.now().toString(),
+                type: 'expense',
+                desc: `[Fixa] ${fixed.desc}`,
+                amount: fixed.amount,
+                category: fixed.category,
+                paymentMethod: fixed.paymentMethod,
+                date: `${year}-${month}-${day}`
+            };
+
+            state.transactions.unshift(paidTx);
+            saveData();
+        }
+
+        function openReportModal() {
+            openModal('reportModal');
+            renderAnnualReport();
+        }
+
+        function renderAnnualReport() {
+            const currentYear = currentDate.getFullYear();
+            const monthlyData = [];
+
+            for (let m = 0; m < 12; m++) {
+                const txs = state.transactions.filter(t => {
+                    const d = new Date(t.date + 'T00:00:00');
+                    return d.getFullYear() === currentYear && d.getMonth() === m;
+                });
+
+                const inc = txs.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+                const exp = txs.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+
+                monthlyData.push({ month: monthNames[m], income: inc, expense: exp });
+            }
+
+            const list = document.getElementById('annualReportList');
+            list.innerHTML = monthlyData.map(d => `
+                <div class="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 text-xs">
+                    <span class="font-bold w-20">${d.month}</span>
+                    <span class="text-emerald-500 font-semibold">+R$ ${d.income.toFixed(0)}</span>
+                    <span class="text-rose-500 font-semibold">-R$ ${d.expense.toFixed(0)}</span>
+                    <span class="font-bold ${d.income - d.expense >= 0 ? 'text-gray-800 dark:text-white' : 'text-rose-600'}">R$ ${(d.income - d.expense).toFixed(0)}</span>
+                </div>
+            `).join('');
+
+            const ctx = document.getElementById('annualComparisonChart').getContext('2d');
+            if (state.annualChart) state.annualChart.destroy();
+
+            state.annualChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: monthNames.map(m => m.substring(0, 3)),
+                    datasets: [
+                        { label: 'Receitas', data: monthlyData.map(d => d.income), backgroundColor: '#10b981' },
+                        { label: 'Despesas', data: monthlyData.map(d => d.expense), backgroundColor: '#f43f5e' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { font: { size: 10 } } } }
+                }
+            });
+        }
+
+        function renderBudgets() {
+            const list = document.getElementById('budgetList');
+            const monthTxs = getFilteredTransactionsForCurrentMonth();
+
+            list.innerHTML = state.categories.map(cat => {
+                const spent = monthTxs
+                    .filter(t => t.category === cat.name && t.type === 'expense')
+                    .reduce((acc, t) => acc + t.amount, 0);
+                const limit = cat.limit || 0;
+                const pct = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
+                const isOver = limit > 0 && spent > limit;
+
+                return `
+                    <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full" style="background:${cat.color}"></span>
+                                ${cat.name}
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] ${isOver ? 'text-rose-600 font-bold' : 'text-gray-400'}">
+                                    R$ ${spent.toFixed(0)} ${limit > 0 ? `/ R$ ${limit}` : '(sem limite)'}
+                                </span>
+                                <button onclick="openCategoryModal(${JSON.stringify(cat).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-xs ml-1">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteCategory('${cat.id}')" class="text-gray-300 hover:text-rose-500 text-xs">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        ${limit > 0 ? `
+                        <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full ${isOver ? 'bg-rose-500' : 'bg-brand-600'}" style="width: ${pct}%"></div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma categoria cadastrada.</p>';
+        }
+
+        function openCategoryModal(cat = null) {
+            if (cat) {
+                document.getElementById('catId').value = cat.id;
+                document.getElementById('catName').value = cat.name;
+                document.getElementById('catColor').value = cat.color || '#6366f1';
+                document.getElementById('catLimit').value = cat.limit || '';
+                document.getElementById('categoryModalTitle').innerText = 'Editar Categoria / Limite';
+            } else {
+                document.getElementById('categoryForm').reset();
+                document.getElementById('catId').value = '';
+                document.getElementById('catColor').value = '#6366f1';
+                document.getElementById('categoryModalTitle').innerText = 'Nova Categoria e Limite';
+            }
+            openModal('categoryModal');
+        }
+
+        function saveCategory(e) {
+            e.preventDefault();
+            const id = document.getElementById('catId').value;
+            const name = document.getElementById('catName').value;
+            const color = document.getElementById('catColor').value;
+            const limit = parseFloat(document.getElementById('catLimit').value) || 0;
+
+            if (id) {
+                const cat = state.categories.find(c => c.id === id);
+                if (cat) {
+                    const oldName = cat.name;
+                    cat.name = name;
+                    cat.color = color;
+                    cat.limit = limit;
+
+                    if (oldName !== name) {
+                        state.transactions.forEach(t => { if (t.category === oldName) t.category = name; });
+                        state.fixedExpenses.forEach(f => { if (f.category === oldName) f.category = name; });
+                    }
+                }
+            } else {
+                state.categories.push({ id: Date.now().toString(), name, color, limit });
+            }
+
+            saveData();
+            closeAllModals();
+        }
+
+        function deleteCategory(id) {
+            if (confirm('Excluir esta categoria?')) {
+                state.categories = state.categories.filter(c => c.id !== id);
+                saveData();
+            }
+        }
+
+        function renderCategoryOptions() {
+            const selects = [document.getElementById('txCategory'), document.getElementById('txCatFilter'), document.getElementById('fixedCategory')];
+            selects.forEach(sel => {
+                if (!sel) return;
+                const isFilter = sel.id === 'txCatFilter';
+                sel.innerHTML = isFilter ? '<option value="all">Todas categorias</option>' : '';
+                state.categories.forEach(c => {
+                    sel.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                });
+            });
+        }
+
+        function renderGoals() {
+            const list = document.getElementById('goalsList');
+            list.innerHTML = state.goals.map(g => {
+                const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+                return `
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-xs font-bold">${g.title}</h4>
+                            <div class="flex items-center gap-2">
+                                <button onclick="depositGoal('${g.id}')" class="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-lg active:scale-95 transition-transform">+ Aporte</button>
+                                <button onclick="openGoalModal(${JSON.stringify(g).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-xs"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteGoal('${g.id}')" class="text-gray-300 hover:text-rose-500 text-xs"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-gray-400">
+                            <span>R$ ${g.current.toFixed(2)} acumulados (${pct}%)</span>
+                            <span>Meta: R$ ${g.target.toFixed(2)}</span>
+                        </div>
+                        <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                            <div class="h-full bg-emerald-500 rounded-full" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma meta cadastrada.</p>';
+        }
+
+        function depositGoal(id) {
+            const val = prompt('Qual o valor do aporte para esta meta (R$)?');
+            const amount = parseFloat(val);
+            if (!isNaN(amount) && amount > 0) {
+                const goal = state.goals.find(g => g.id === id);
+                if (goal) {
+                    goal.current += amount;
+                    saveData();
+                }
+            }
+        }
+
+        function openGoalModal(goal = null) {
+            if (goal) {
+                document.getElementById('goalId').value = goal.id;
+                document.getElementById('goalTitle').value = goal.title;
+                document.getElementById('goalTarget').value = goal.target;
+                document.getElementById('goalCurrent').value = goal.current;
+                document.getElementById('goalDeadline').value = goal.deadline;
+                document.getElementById('goalModalTitle').innerText = 'Editar Meta';
+            } else {
+                document.getElementById('goalForm').reset();
+                document.getElementById('goalId').value = '';
+                document.getElementById('goalModalTitle').innerText = 'Nova Meta';
+            }
+            openModal('goalModal');
+        }
+
+        function saveGoal(e) {
+            e.preventDefault();
+            const id = document.getElementById('goalId').value;
+            const goalData = {
+                id: id || Date.now().toString(),
+                title: document.getElementById('goalTitle').value,
+                target: parseFloat(document.getElementById('goalTarget').value),
+                current: parseFloat(document.getElementById('goalCurrent').value),
+                deadline: document.getElementById('goalDeadline').value
+            };
+
+            if (id) {
+                const idx = state.goals.findIndex(g => g.id === id);
+                if (idx !== -1) state.goals[idx] = goalData;
+            } else {
+                state.goals.push(goalData);
+            }
+
+            saveData();
+            closeAllModals();
+        }
+
+        function deleteGoal(id) {
+            if (confirm('Excluir esta meta?')) {
+                state.goals = state.goals.filter(g => g.id !== id);
+                saveData();
+            }
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('categoryChartMobile').getContext('2d');
+            state.chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
+                }
+            });
+        }
+
+        function updateChart(monthTxs) {
+            if (!state.chart) return;
+            const expenses = monthTxs.filter(t => t.type === 'expense');
+            const dataMap = {};
+
+            expenses.forEach(t => {
+                dataMap[t.category] = (dataMap[t.category] || 0) + t.amount;
+            });
+
+            const labels = Object.keys(dataMap);
+            const data = Object.values(dataMap);
+            const colors = labels.map(l => {
+                const cat = state.categories.find(c => c.name === l);
+                return cat ? cat.color : '#6366f1';
+            });
+
+            state.chart.data.labels = labels;
+            state.chart.data.datasets[0].data = data;
+            state.chart.data.datasets[0].backgroundColor = colors;
+            state.chart.update();
+        }
+
+        function initDarkModeUI() {
+            const isDark = document.documentElement.classList.contains('dark');
+            document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-xs' : 'fas fa-moon text-xs';
+        }
+
         function toggleDarkMode() {
             const isDark = document.documentElement.classList.toggle('dark');
-            localStorage.setItem('finflow_theme', isDark ? 'dark' : 'light');
+            document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-xs' : 'fas fa-moon text-xs';
+            saveStoredData('finflow_theme', isDark ? 'dark' : 'light');
         }
-
-        function forceAppUpdate() {
-            location.reload(true);
-        }
-
-        function exportBackupData() {
-            const data = { userProfile, state };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `backup_myfinance_${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-        }
-
-        function importBackupData(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                try {
-                    const parsed = JSON.parse(evt.target.result);
-                    if (parsed.userProfile) userProfile = parsed.userProfile;
-                    if (parsed.state) state = parsed.state;
-
-                    window.userProfile = userProfile;
-                    window.state = state;
-
-                    saveState();
-                    saveStoredData('finflow_user', JSON.stringify(userProfile));
-                    if (window.saveStateToFirebase) window.saveStateToFirebase();
-
-                    renderAll();
-                    updateProfileUI();
-                    closeAllModals();
-                    alert('Backup restaurado com sucesso!');
-                } catch (err) {
-                    alert('Arquivo de backup inválido.');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function formatCurrency(val) {
-            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
-        }
-
-        function formatDate(dateStr) {
-            if (!dateStr) return '';
-            const parts = dateStr.split('-');
-            return `${parts[2]}/${parts[1]}/${parts[0]}`;
-        }
-
-        window.onload = initApp;
     </script>
 </body>
 </html>
