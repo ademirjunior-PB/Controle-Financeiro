@@ -1,9 +1,15 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>AJ-MyFinance - Controle Financeiro Mobile</title>
+
+    <!-- PWA Web App Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#4f46e5">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,6 +19,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
+        // Aplicação do tema antes de renderizar a página para evitar piscada (flash) de tema
+        if (localStorage.getItem('finflow_theme') === 'dark' || (!('finflow_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -33,8 +46,10 @@
     </script>
 
     <style>
-        -webkit-touch-callout: none;
-        -webkit-tap-highlight-color: transparent;
+        * {
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
         
         body {
             padding-bottom: env(safe-area-inset-bottom, 20px);
@@ -42,7 +57,7 @@
         }
 
         .pb-safe {
-            padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+            padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
         }
 
         .pt-safe {
@@ -50,7 +65,7 @@
         }
 
         .bottom-sheet {
-            transition: transform 0.3s ease-out;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             transform: translateY(100%);
         }
 
@@ -94,8 +109,8 @@
             </div>
 
             <div class="flex items-center space-x-2">
-                <button id="themeToggleBtn" onclick="toggleDarkMode()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center">
-                    <i class="fas fa-moon text-xs"></i>
+                <button id="themeToggleBtn" onclick="toggleDarkMode()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
+                    <i id="themeIcon" class="fas fa-moon text-xs"></i>
                 </button>
             </div>
         </div>
@@ -119,7 +134,6 @@
         
         <!-- ABA: DASHBOARD / INÍCIO -->
         <section id="tab-dashboard" class="tab-content space-y-4">
-            
             <!-- Cards de Resumo -->
             <div class="grid grid-cols-3 gap-2">
                 <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
@@ -164,32 +178,30 @@
 
         <!-- ABA: TRANSAÇÕES / EXTRATO -->
         <section id="tab-transactions" class="tab-content space-y-4 hidden">
-            <!-- Filtro de Busca -->
             <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
-                <input type="text" id="txSearch" oninput="renderTransactions()" placeholder="Buscar transação..." class="w-full bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500">
+                <input type="text" id="txSearch" oninput="renderTransactions()" placeholder="Buscar transação..." class="w-full bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500 dark:text-white">
                 <div class="flex gap-2">
-                    <select id="txTypeFilter" onchange="renderTransactions()" class="flex-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-2 py-2 text-xs">
+                    <select id="txTypeFilter" onchange="renderTransactions()" class="flex-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-2 py-2 text-xs dark:text-white">
                         <option value="all">Todos os tipos</option>
                         <option value="income">Receitas</option>
                         <option value="expense">Despesas</option>
                     </select>
-                    <select id="txCatFilter" onchange="renderTransactions()" class="flex-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-2 py-2 text-xs">
+                    <select id="txCatFilter" onchange="renderTransactions()" class="flex-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-2 py-2 text-xs dark:text-white">
                         <option value="all">Todas categorias</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Lista Extrato -->
             <div id="fullTxList" class="space-y-2">
                 <!-- Gerado dinamicamente -->
             </div>
         </section>
 
-        <!-- ABA: DESPESAS FIXAS (NOVA ABA) -->
+        <!-- ABA: DESPESAS FIXAS -->
         <section id="tab-fixed" class="tab-content space-y-4 hidden">
             <div class="flex justify-between items-center">
                 <h2 class="text-sm font-bold text-gray-700 dark:text-gray-300">Despesas Recorrentes / Fixas</h2>
-                <button onclick="openFixedModal()" class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-xl font-medium shadow-sm">
+                <button onclick="openFixedModal()" class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-xl font-medium shadow-sm active:scale-95 transition-transform">
                     <i class="fas fa-plus text-[10px] mr-1"></i> Nova Fixa
                 </button>
             </div>
@@ -202,8 +214,10 @@
         <!-- ABA: LIMITES (CONTROLE DE GASTOS) -->
         <section id="tab-budgets" class="tab-content space-y-4 hidden">
             <div class="flex justify-between items-center">
-                <h2 class="text-sm font-bold text-gray-700 dark:text-gray-300">Controle de Gastos</h2>
-                <button onclick="openModal('categoryModal')" class="text-xs text-brand-600 dark:text-brand-400 font-semibold">Gerenciar Categorias</button>
+                <h2 class="text-sm font-bold text-gray-700 dark:text-gray-300">Controle de Gastos por Categoria</h2>
+                <button onclick="openCategoryModal()" class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-xl font-medium shadow-sm active:scale-95 transition-transform">
+                    <i class="fas fa-plus text-[10px] mr-1"></i> Nova Categoria
+                </button>
             </div>
             <div id="budgetList" class="space-y-3">
                 <!-- Cards de limite por categoria -->
@@ -214,7 +228,7 @@
         <section id="tab-goals" class="tab-content space-y-4 hidden">
             <div class="flex justify-between items-center">
                 <h2 class="text-sm font-bold text-gray-700 dark:text-gray-300">Minhas Metas</h2>
-                <button onclick="openGoalModal()" class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-xl font-medium shadow-sm">
+                <button onclick="openGoalModal()" class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-xl font-medium shadow-sm active:scale-95 transition-transform">
                     <i class="fas fa-plus text-[10px] mr-1"></i> Nova Meta
                 </button>
             </div>
@@ -226,7 +240,7 @@
     </main>
 
     <!-- Botão Flutuante Principal (FAB) -->
-    <button onclick="openTxModal()" class="fixed right-5 bottom-20 z-30 w-14 h-14 bg-brand-600 text-white rounded-full shadow-lg flex items-center justify-center text-xl active:scale-95 transition-transform">
+    <button onclick="openTxModal()" class="fixed right-5 bottom-20 z-30 w-14 h-14 bg-brand-600 text-white rounded-full shadow-lg flex items-center justify-center text-xl active:scale-90 transition-transform">
         <i class="fas fa-plus"></i>
     </button>
 
@@ -271,16 +285,16 @@
             </div>
             <div>
                 <label class="text-[10px] font-bold text-gray-500 uppercase">Descrição</label>
-                <input type="text" id="txDesc" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
+                <input type="text" id="txDesc" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Valor (R$)</label>
-                    <input type="number" step="0.01" id="txAmount" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
+                    <input type="number" step="0.01" id="txAmount" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Pagamento</label>
-                    <select id="txPaymentMethod" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
+                    <select id="txPaymentMethod" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                         <option value="Pix">Pix</option>
                         <option value="Crédito">Cartão de Crédito</option>
                         <option value="Débito">Cartão de Débito</option>
@@ -291,43 +305,44 @@
             </div>
             <div>
                 <label class="text-[10px] font-bold text-gray-500 uppercase">Categoria</label>
-                <select id="txCategory" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs"></select>
+                <select id="txCategory" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white"></select>
             </div>
             <div>
                 <label class="text-[10px] font-bold text-gray-500 uppercase">Data</label>
-                <input type="date" id="txDate" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
+                <input type="date" id="txDate" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
-            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2">Salvar Transação</button>
+            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Transação</button>
         </form>
     </div>
 
-    <!-- MODAL: Nova Despesa Fixa -->
+    <!-- MODAL: Nova / Editar Despesa Fixa -->
     <div id="fixedModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
         <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-        <h3 class="text-base font-bold mb-4">Nova Despesa Fixa</h3>
+        <h3 id="fixedModalTitle" class="text-base font-bold mb-4">Nova Despesa Fixa</h3>
         <form id="fixedForm" onsubmit="saveFixed(event)" class="space-y-3">
+            <input type="hidden" id="fixedId">
             <div>
                 <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Conta / Despesa</label>
-                <input type="text" id="fixedDesc" required placeholder="Ex: Aluguel, Internet, Netflix" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
+                <input type="text" id="fixedDesc" required placeholder="Ex: Aluguel, Internet, Netflix" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Valor (R$)</label>
-                    <input type="number" step="0.01" id="fixedAmount" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
+                    <input type="number" step="0.01" id="fixedAmount" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Dia de Vencimento</label>
-                    <input type="number" min="1" max="31" id="fixedDay" required placeholder="Ex: 10" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
+                    <input type="number" min="1" max="31" id="fixedDay" required placeholder="Ex: 10" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Categoria</label>
-                    <select id="fixedCategory" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs"></select>
+                    <select id="fixedCategory" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white"></select>
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Forma Pagamento</label>
-                    <select id="fixedPaymentMethod" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
+                    <select id="fixedPaymentMethod" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                         <option value="Pix">Pix</option>
                         <option value="Crédito">Cartão de Crédito</option>
                         <option value="Débito">Cartão de Débito</option>
@@ -336,7 +351,7 @@
                     </select>
                 </div>
             </div>
-            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2">Cadastrar Despesa Fixa</button>
+            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Cadastrar Despesa Fixa</button>
         </form>
     </div>
 
@@ -357,18 +372,29 @@
         </div>
     </div>
 
-    <!-- MODAL: Gerenciar Categorias -->
+    <!-- MODAL: Gerenciar Categoria / Limite -->
     <div id="categoryModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
         <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-        <h3 class="text-base font-bold mb-4">Gerenciar Categorias</h3>
+        <h3 id="categoryModalTitle" class="text-base font-bold mb-4">Categoria e Limite</h3>
         
-        <form onsubmit="addCategory(event)" class="flex gap-2 mb-4">
-            <input type="text" id="newCatName" placeholder="Nova Categoria" required class="flex-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
-            <input type="color" id="newCatColor" value="#6366f1" class="w-10 h-9 p-1 rounded-xl border-none">
-            <button type="submit" class="bg-brand-600 text-white px-3 py-2 rounded-xl text-xs font-bold">+</button>
+        <form id="categoryForm" onsubmit="saveCategory(event)" class="space-y-3">
+            <input type="hidden" id="catId">
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Categoria</label>
+                <input type="text" id="catName" placeholder="Ex: Alimentação, Lazer" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Cor do Gráfico</label>
+                    <input type="color" id="catColor" value="#6366f1" class="w-full h-9 mt-1 p-1 rounded-xl bg-gray-50 dark:bg-gray-700 border-none cursor-pointer">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Limite Mensal (R$)</label>
+                    <input type="number" step="0.01" id="catLimit" placeholder="Ex: 500 (0 para sem limite)" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                </div>
+            </div>
+            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Categoria</button>
         </form>
-
-        <div id="categoryManageList" class="space-y-2 max-h-60 overflow-y-auto"></div>
     </div>
 
     <!-- MODAL: Meta / Objetivo -->
@@ -379,23 +405,23 @@
             <input type="hidden" id="goalId">
             <div>
                 <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Meta</label>
-                <input type="text" id="goalTitle" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
+                <input type="text" id="goalTitle" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Meta (R$)</label>
-                    <input type="number" step="0.01" id="goalTarget" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Meta Total (R$)</label>
+                    <input type="number" step="0.01" id="goalTarget" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Atual (R$)</label>
-                    <input type="number" step="0.01" id="goalCurrent" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Valor Atual (R$)</label>
+                    <input type="number" step="0.01" id="goalCurrent" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
             </div>
             <div>
                 <label class="text-[10px] font-bold text-gray-500 uppercase">Data Limite</label>
-                <input type="date" id="goalDeadline" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs">
+                <input type="date" id="goalDeadline" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
-            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2">Salvar Meta</button>
+            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Meta</button>
         </form>
     </div>
 
@@ -403,7 +429,7 @@
     <script>
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-        let currentDate = new Date(); // Data do Mês Selecionado
+        let currentDate = new Date();
 
         let state = {
             transactions: JSON.parse(localStorage.getItem('finflow_txs')) || [
@@ -430,6 +456,7 @@
         };
 
         document.addEventListener('DOMContentLoaded', () => {
+            initDarkModeUI();
             initChart();
             renderAll();
             document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
@@ -456,7 +483,6 @@
             renderBudgets();
             renderGoals();
             renderCategoryOptions();
-            renderCategoryManageList();
         }
 
         function updateMonthLabel() {
@@ -483,7 +509,7 @@
             document.querySelectorAll('.bottom-sheet').forEach(el => el.classList.remove('active'));
         }
 
-        // Transações
+        // --- TRANSAÇÕES ---
         function setTxType(type) {
             state.currentTxType = type;
             const expenseBtn = document.getElementById('typeExpenseBtn');
@@ -506,11 +532,13 @@
                 document.getElementById('txCategory').value = tx.category;
                 document.getElementById('txPaymentMethod').value = tx.paymentMethod || 'Pix';
                 document.getElementById('txDate').value = tx.date;
+                document.getElementById('txModalTitle').innerText = 'Editar Transação';
                 setTxType(tx.type);
             } else {
                 document.getElementById('txForm').reset();
                 document.getElementById('txId').value = '';
                 document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('txModalTitle').innerText = 'Nova Transação';
                 setTxType('expense');
             }
             openModal('txModal');
@@ -531,7 +559,7 @@
 
             if (id) {
                 const idx = state.transactions.findIndex(t => t.id === id);
-                state.transactions[idx] = newTx;
+                if (idx !== -1) state.transactions[idx] = newTx;
             } else {
                 state.transactions.unshift(newTx);
             }
@@ -547,7 +575,6 @@
             }
         }
 
-        // Filtro por Mês das Transações
         function getFilteredTransactionsForCurrentMonth() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
@@ -609,6 +636,9 @@
                         <span class="text-xs font-bold ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}">
                             ${t.type === 'income' ? '+' : '-'} R$ ${t.amount.toFixed(2)}
                         </span>
+                        <button onclick="openTxModal(${JSON.stringify(t).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-xs">
+                            <i class="fas fa-edit"></i>
+                        </button>
                         <button onclick="deleteTx('${t.id}')" class="text-gray-300 hover:text-rose-500 text-xs">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -617,13 +647,12 @@
             `).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma transação encontrada no mês.</p>';
         }
 
-        // DESPESAS FIXAS
+        // --- DESPESAS FIXAS ---
         function renderFixedExpenses() {
             const list = document.getElementById('fixedList');
             const currentMonthTxs = getFilteredTransactionsForCurrentMonth();
 
             list.innerHTML = state.fixedExpenses.map(f => {
-                // Verificar se essa despesa já foi paga este mês
                 const isPaid = currentMonthTxs.some(t => t.desc.includes(f.desc) && t.type === 'expense');
 
                 return `
@@ -635,32 +664,55 @@
                         </div>
                         <div class="flex flex-col items-end gap-2">
                             ${isPaid 
-                                ? `<span class="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 font-bold px-2 py-1 rounded-lg">Pago neste Mês</span>`
-                                : `<button onclick="confirmFixedPayment('${f.id}')" class="text-xs bg-brand-600 text-white font-bold px-3 py-1.5 rounded-xl shadow-sm active:scale-95">Confirmar Pagamento</button>`
+                                ? `<span class="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 font-bold px-2.5 py-1 rounded-lg"><i class="fas fa-check mr-1"></i>Pago</span>`
+                                : `<button onclick="confirmFixedPayment('${f.id}')" class="text-xs bg-brand-600 text-white font-bold px-3 py-1.5 rounded-xl shadow-sm active:scale-95 transition-transform">Confirmar</button>`
                             }
-                            <button onclick="deleteFixed('${f.id}')" class="text-gray-300 hover:text-rose-500 text-[10px]"><i class="fas fa-trash mr-1"></i>Remover</button>
+                            <div class="flex items-center gap-2">
+                                <button onclick="openFixedModal(${JSON.stringify(f).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-[10px]"><i class="fas fa-edit mr-0.5"></i>Editar</button>
+                                <button onclick="deleteFixed('${f.id}')" class="text-gray-300 hover:text-rose-500 text-[10px]"><i class="fas fa-trash mr-0.5"></i>Remover</button>
+                            </div>
                         </div>
                     </div>
                 `;
             }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma despesa fixa cadastrada.</p>';
         }
 
-        function openFixedModal() {
-            document.getElementById('fixedForm').reset();
+        function openFixedModal(fixed = null) {
+            if (fixed) {
+                document.getElementById('fixedId').value = fixed.id;
+                document.getElementById('fixedDesc').value = fixed.desc;
+                document.getElementById('fixedAmount').value = fixed.amount;
+                document.getElementById('fixedDay').value = fixed.day;
+                document.getElementById('fixedCategory').value = fixed.category;
+                document.getElementById('fixedPaymentMethod').value = fixed.paymentMethod || 'Pix';
+                document.getElementById('fixedModalTitle').innerText = 'Editar Despesa Fixa';
+            } else {
+                document.getElementById('fixedForm').reset();
+                document.getElementById('fixedId').value = '';
+                document.getElementById('fixedModalTitle').innerText = 'Nova Despesa Fixa';
+            }
             openModal('fixedModal');
         }
 
         function saveFixed(e) {
             e.preventDefault();
-            const newFixed = {
-                id: Date.now().toString(),
+            const id = document.getElementById('fixedId').value;
+            const fixedData = {
+                id: id || Date.now().toString(),
                 desc: document.getElementById('fixedDesc').value,
                 amount: parseFloat(document.getElementById('fixedAmount').value),
                 day: parseInt(document.getElementById('fixedDay').value),
                 category: document.getElementById('fixedCategory').value,
                 paymentMethod: document.getElementById('fixedPaymentMethod').value
             };
-            state.fixedExpenses.push(newFixed);
+
+            if (id) {
+                const idx = state.fixedExpenses.findIndex(f => f.id === id);
+                if (idx !== -1) state.fixedExpenses[idx] = fixedData;
+            } else {
+                state.fixedExpenses.push(fixedData);
+            }
+
             saveData();
             closeAllModals();
         }
@@ -692,10 +744,9 @@
 
             state.transactions.unshift(paidTx);
             saveData();
-            alert(`Pagamento de "${fixed.desc}" confirmado para o mês atual!`);
         }
 
-        // RELATÓRIO COMPARATIVO ANUAL
+        // --- RELATÓRIO COMPARATIVO ANUAL ---
         function openReportModal() {
             openModal('reportModal');
             renderAnnualReport();
@@ -717,7 +768,6 @@
                 monthlyData.push({ month: monthNames[m], income: inc, expense: exp });
             }
 
-            // Tabela
             const list = document.getElementById('annualReportList');
             list.innerHTML = monthlyData.map(d => `
                 <div class="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 text-xs">
@@ -728,7 +778,6 @@
                 </div>
             `).join('');
 
-            // Gráfico Anual
             const ctx = document.getElementById('annualComparisonChart').getContext('2d');
             if (state.annualChart) state.annualChart.destroy();
 
@@ -749,86 +798,100 @@
             });
         }
 
-        // Limites (Controle de Gastos)
+        // --- LIMITES E CATEGORIAS ---
         function renderBudgets() {
             const list = document.getElementById('budgetList');
-            const expenseCats = state.categories.filter(c => c.limit > 0);
             const monthTxs = getFilteredTransactionsForCurrentMonth();
 
-            list.innerHTML = expenseCats.map(cat => {
+            list.innerHTML = state.categories.map(cat => {
                 const spent = monthTxs
                     .filter(t => t.category === cat.name && t.type === 'expense')
                     .reduce((acc, t) => acc + t.amount, 0);
-                const pct = Math.min(100, Math.round((spent / cat.limit) * 100));
+                const limit = cat.limit || 0;
+                const pct = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
+                const isOver = limit > 0 && spent > limit;
 
                 return `
-                    <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                        <div class="flex justify-between items-center mb-1">
+                    <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
+                        <div class="flex justify-between items-center">
                             <span class="text-xs font-bold flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full" style="background:${cat.color}"></span>
+                                <span class="w-3 h-3 rounded-full" style="background:${cat.color}"></span>
                                 ${cat.name}
                             </span>
-                            <span class="text-[10px] text-gray-400">R$ ${spent.toFixed(0)} / R$ ${cat.limit}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] ${isOver ? 'text-rose-600 font-bold' : 'text-gray-400'}">
+                                    R$ ${spent.toFixed(0)} ${limit > 0 ? `/ R$ ${limit}` : '(sem limite)'}
+                                </span>
+                                <button onclick="openCategoryModal(${JSON.stringify(cat).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-xs ml-1">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteCategory('${cat.id}')" class="text-gray-300 hover:text-rose-500 text-xs">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
+                        ${limit > 0 ? `
                         <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full ${pct >= 100 ? 'bg-rose-500' : 'bg-brand-600'}" style="width: ${pct}%"></div>
+                            <div class="h-full rounded-full ${isOver ? 'bg-rose-500' : 'bg-brand-600'}" style="width: ${pct}%"></div>
                         </div>
+                        ` : ''}
                     </div>
                 `;
-            }).join('');
+            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma categoria cadastrada.</p>';
         }
 
-        // Renderizar Metas
-        function renderGoals() {
-            const list = document.getElementById('goalsList');
-            list.innerHTML = state.goals.map(g => {
-                const pct = Math.min(100, Math.round((g.current / g.target) * 100));
-                return `
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
-                        <div class="flex justify-between items-center">
-                            <h4 class="text-xs font-bold">${g.title}</h4>
-                            <button onclick="deleteGoal('${g.id}')" class="text-gray-300 hover:text-rose-500 text-xs"><i class="fas fa-trash"></i></button>
-                        </div>
-                        <div class="flex justify-between text-[10px] text-gray-400">
-                            <span>R$ ${g.current.toFixed(2)} acumulados</span>
-                            <span>Meta: R$ ${g.target.toFixed(2)}</span>
-                        </div>
-                        <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                            <div class="h-full bg-emerald-500 rounded-full" style="width: ${pct}%"></div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+        function openCategoryModal(cat = null) {
+            if (cat) {
+                document.getElementById('catId').value = cat.id;
+                document.getElementById('catName').value = cat.name;
+                document.getElementById('catColor').value = cat.color || '#6366f1';
+                document.getElementById('catLimit').value = cat.limit || '';
+                document.getElementById('categoryModalTitle').innerText = 'Editar Categoria / Limite';
+            } else {
+                document.getElementById('categoryForm').reset();
+                document.getElementById('catId').value = '';
+                document.getElementById('catColor').value = '#6366f1';
+                document.getElementById('categoryModalTitle').innerText = 'Nova Categoria e Limite';
+            }
+            openModal('categoryModal');
         }
 
-        function openGoalModal() {
-            document.getElementById('goalForm').reset();
-            document.getElementById('goalId').value = '';
-            openModal('goalModal');
-        }
-
-        function saveGoal(e) {
+        function saveCategory(e) {
             e.preventDefault();
-            const newGoal = {
-                id: Date.now().toString(),
-                title: document.getElementById('goalTitle').value,
-                target: parseFloat(document.getElementById('goalTarget').value),
-                current: parseFloat(document.getElementById('goalCurrent').value),
-                deadline: document.getElementById('goalDeadline').value
-            };
-            state.goals.push(newGoal);
+            const id = document.getElementById('catId').value;
+            const name = document.getElementById('catName').value;
+            const color = document.getElementById('catColor').value;
+            const limit = parseFloat(document.getElementById('catLimit').value) || 0;
+
+            if (id) {
+                const cat = state.categories.find(c => c.id === id);
+                if (cat) {
+                    const oldName = cat.name;
+                    cat.name = name;
+                    cat.color = color;
+                    cat.limit = limit;
+
+                    // Atualiza transações existentes se o nome da categoria mudar
+                    if (oldName !== name) {
+                        state.transactions.forEach(t => { if (t.category === oldName) t.category = name; });
+                        state.fixedExpenses.forEach(f => { if (f.category === oldName) f.category = name; });
+                    }
+                }
+            } else {
+                state.categories.push({ id: Date.now().toString(), name, color, limit });
+            }
+
             saveData();
             closeAllModals();
         }
 
-        function deleteGoal(id) {
-            if (confirm('Excluir esta meta?')) {
-                state.goals = state.goals.filter(g => g.id !== id);
+        function deleteCategory(id) {
+            if (confirm('Excluir esta categoria?')) {
+                state.categories = state.categories.filter(c => c.id !== id);
                 saveData();
             }
         }
 
-        // Categorias
         function renderCategoryOptions() {
             const selects = [document.getElementById('txCategory'), document.getElementById('txCatFilter'), document.getElementById('fixedCategory')];
             selects.forEach(sel => {
@@ -841,38 +904,91 @@
             });
         }
 
-        function renderCategoryManageList() {
-            const list = document.getElementById('categoryManageList');
-            list.innerHTML = state.categories.map(c => `
-                <div class="flex justify-between items-center py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                    <div class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded-full" style="background:${c.color}"></span>
-                        <span class="text-xs font-semibold">${c.name}</span>
+        // --- METAS E OBJETIVOS ---
+        function renderGoals() {
+            const list = document.getElementById('goalsList');
+            list.innerHTML = state.goals.map(g => {
+                const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+                return `
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-xs font-bold">${g.title}</h4>
+                            <div class="flex items-center gap-2">
+                                <button onclick="depositGoal('${g.id}')" class="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-lg active:scale-95 transition-transform">+ Aporte</button>
+                                <button onclick="openGoalModal(${JSON.stringify(g).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-xs"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteGoal('${g.id}')" class="text-gray-300 hover:text-rose-500 text-xs"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-gray-400">
+                            <span>R$ ${g.current.toFixed(2)} acumulados (${pct}%)</span>
+                            <span>Meta: R$ ${g.target.toFixed(2)}</span>
+                        </div>
+                        <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                            <div class="h-full bg-emerald-500 rounded-full" style="width: ${pct}%"></div>
+                        </div>
                     </div>
-                    <button onclick="deleteCategory('${c.id}')" class="text-gray-400 hover:text-rose-500 text-xs">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `).join('');
+                `;
+            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma meta cadastrada.</p>';
         }
 
-        function addCategory(e) {
+        function depositGoal(id) {
+            const val = prompt('Qual o valor do aporte para esta meta (R$)?');
+            const amount = parseFloat(val);
+            if (!isNaN(amount) && amount > 0) {
+                const goal = state.goals.find(g => g.id === id);
+                if (goal) {
+                    goal.current += amount;
+                    saveData();
+                }
+            }
+        }
+
+        function openGoalModal(goal = null) {
+            if (goal) {
+                document.getElementById('goalId').value = goal.id;
+                document.getElementById('goalTitle').value = goal.title;
+                document.getElementById('goalTarget').value = goal.target;
+                document.getElementById('goalCurrent').value = goal.current;
+                document.getElementById('goalDeadline').value = goal.deadline;
+                document.getElementById('goalModalTitle').innerText = 'Editar Meta';
+            } else {
+                document.getElementById('goalForm').reset();
+                document.getElementById('goalId').value = '';
+                document.getElementById('goalModalTitle').innerText = 'Nova Meta';
+            }
+            openModal('goalModal');
+        }
+
+        function saveGoal(e) {
             e.preventDefault();
-            const name = document.getElementById('newCatName').value;
-            const color = document.getElementById('newCatColor').value;
-            state.categories.push({ id: Date.now().toString(), name, color, limit: 500 });
-            document.getElementById('newCatName').value = '';
+            const id = document.getElementById('goalId').value;
+            const goalData = {
+                id: id || Date.now().toString(),
+                title: document.getElementById('goalTitle').value,
+                target: parseFloat(document.getElementById('goalTarget').value),
+                current: parseFloat(document.getElementById('goalCurrent').value),
+                deadline: document.getElementById('goalDeadline').value
+            };
+
+            if (id) {
+                const idx = state.goals.findIndex(g => g.id === id);
+                if (idx !== -1) state.goals[idx] = goalData;
+            } else {
+                state.goals.push(goalData);
+            }
+
             saveData();
+            closeAllModals();
         }
 
-        function deleteCategory(id) {
-            if (confirm('Excluir esta categoria?')) {
-                state.categories = state.categories.filter(c => c.id !== id);
+        function deleteGoal(id) {
+            if (confirm('Excluir esta meta?')) {
+                state.goals = state.goals.filter(g => g.id !== id);
                 saveData();
             }
         }
 
-        // Gráfico Rosca
+        // --- GRÁFICO ROSCA ---
         function initChart() {
             const ctx = document.getElementById('categoryChartMobile').getContext('2d');
             state.chart = new Chart(ctx, {
@@ -908,8 +1024,16 @@
             state.chart.update();
         }
 
+        // --- DARK MODE PERSISTENTE ---
+        function initDarkModeUI() {
+            const isDark = document.documentElement.classList.contains('dark');
+            document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-xs' : 'fas fa-moon text-xs';
+        }
+
         function toggleDarkMode() {
-            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.toggle('dark');
+            document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-xs' : 'fas fa-moon text-xs';
+            localStorage.setItem('finflow_theme', isDark ? 'dark' : 'light');
         }
     </script>
 </body>
