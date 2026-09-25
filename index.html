@@ -18,6 +18,55 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- Firebase SDK v10 (ES Modules) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { 
+            getAuth, 
+            GoogleAuthProvider, 
+            signInWithPopup, 
+            signOut, 
+            onAuthStateChanged,
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            getDoc, 
+            collection, 
+            getDocs, 
+            deleteDoc 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCykfYieUDo_LU5t16yj8JTt-Fsiidb9J4",
+            authDomain: "aj-connectpb.firebaseapp.com",
+            projectId: "aj-connectpb",
+            storageBucket: "aj-connectpb.firebasestorage.app",
+            messagingSenderId: "280670991097",
+            appId: "1:280670991097:web:14a71c57219a1b7814e828"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Disponibiliza as instâncias e métodos no escopo global do window
+        window.fbAuth = auth;
+        window.fbDb = db;
+        window.fbProviders = { google: new GoogleAuthProvider() };
+        window.fbMethods = { 
+            signInWithPopup, 
+            signOut, 
+            onAuthStateChanged, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword,
+            doc, setDoc, getDoc, collection, getDocs, deleteDoc 
+        };
+    </script>
+
     <script>
         if (localStorage.getItem('finflow_theme') === 'dark' || (!('finflow_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
@@ -94,27 +143,28 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
 
-    <!-- TELA DE SETUP / BOAS-VINDAS -->
-    <div id="welcomeScreen" class="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col justify-center items-center px-6 hidden">
+    <!-- TELA DE LOGIN FIREBASE (NOVA) -->
+    <div id="authScreen" class="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col justify-center items-center px-6">
         <div class="w-full max-w-sm space-y-6 text-center">
             <div class="w-16 h-16 rounded-2xl bg-brand-600 text-white flex items-center justify-center text-2xl mx-auto shadow-lg shadow-brand-500/30">
                 <i class="fas fa-wallet"></i>
             </div>
             <div>
-                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Bem-vindo ao AJ-MyFinance!</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Configure o seu perfil para começar a organizar suas finanças.</p>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">AJ-MyFinance</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Sincronize suas finanças em qualquer dispositivo com segurança.</p>
             </div>
-            <form onsubmit="saveUserProfile(event)" class="space-y-4 text-left">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Seu Nome / Como quer ser chamado</label>
-                    <input type="text" id="setupUserName" required placeholder="Ex: João Silva" class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Frase Motivacional / Mensagem</label>
-                    <input type="text" id="setupUserSubtext" value="A sua liberdade financeira começa hoje." class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
-                </div>
-                <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-lg active:scale-98 transition-transform">Entrar no Sistema</button>
-            </form>
+            
+            <div class="space-y-3">
+                <button onclick="loginWithGoogle()" class="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold rounded-xl text-xs shadow-sm flex items-center justify-center gap-3 active:scale-98 transition-transform">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    Entrar com o Google
+                </button>
+            </div>
         </div>
     </div>
 
@@ -131,7 +181,7 @@
                 </div>
             </div>
 
-            <!-- BOTOES DO CABEÇALHO (ATUALIZAR, PERFIL, TEMA) -->
+            <!-- BOTOES DO CABEÇALHO -->
             <div class="flex items-center space-x-2">
                 <button onclick="forceAppUpdate()" title="Buscar Atualizações" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
                     <i class="fas fa-sync-alt text-xs"></i>
@@ -321,6 +371,10 @@
                 </button>
                 <input type="file" id="importFile" accept=".json" class="hidden" onchange="importBackupData(event)">
             </div>
+            
+            <button onclick="logoutFirebase()" class="w-full py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 font-bold rounded-xl text-xs mt-3 active:scale-98 transition-transform flex items-center justify-center gap-2">
+                <i class="fas fa-sign-out-alt"></i> Sair da Conta (Logout)
+            </button>
         </div>
     </div>
 
@@ -480,6 +534,7 @@
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
         let currentDate = new Date();
+        let currentUser = null;
 
         function setCookie(name, value, days = 365) {
             const expires = new Date(Date.now() + days * 864e5).toUTCString();
@@ -504,174 +559,127 @@
             setCookie(key, value);
         }
 
-        let userProfile = JSON.parse(getStoredData('finflow_user')) || null;
-
         let state = {
-            transactions: JSON.parse(getStoredData('finflow_txs')) || [
-                { id: '1', type: 'income', desc: 'Salário', amount: 4500, category: 'Salário', paymentMethod: 'Pix', date: new Date().toISOString().split('T')[0] },
-                { id: '2', type: 'expense', desc: 'Mercado', amount: 650, category: 'Alimentação', paymentMethod: 'Débito', date: new Date().toISOString().split('T')[0] }
-            ],
-            fixedExpenses: JSON.parse(getStoredData('finflow_fixed')) || [
-                { id: 'f1', desc: 'Aluguel', amount: 1200, category: 'Moradia', day: 10, paymentMethod: 'Pix' },
-                { id: 'f2', desc: 'Internet', amount: 100, category: 'Moradia', day: 15, paymentMethod: 'Pix' }
-            ],
+            transactions: JSON.parse(getStoredData('finflow_txs')) || [],
+            fixedExpenses: JSON.parse(getStoredData('finflow_fixed')) || [],
             categories: JSON.parse(getStoredData('finflow_cats')) || [
                 { id: 'c1', name: 'Alimentação', color: '#f59e0b', limit: 1000 },
-                { id: 'c2', name: 'Moradia', color: '#3b82f6', limit: 1500 },
-                { id: 'c3', name: 'Transporte', color: '#8b5cf6', limit: 400 },
-                { id: 'c4', name: 'Lazer', color: '#ec4899', limit: 300 },
-                { id: 'c5', name: 'Salário', color: '#10b981', limit: 0 }
+                { id: 'c2', name: 'Moradia', color: '#3b82f6', limit: 2000 },
+                { id: 'c3', name: 'Transporte', color: '#10b981', limit: 500 }
             ],
-            goals: JSON.parse(getStoredData('finflow_goals')) || [
-                { id: 'g1', title: 'Reserva de Emergência', target: 10000, current: 3500, deadline: '2026-12-31' }
-            ],
-            currentTxType: 'expense',
-            chart: null,
-            annualChart: null
+            goals: JSON.parse(getStoredData('finflow_goals')) || []
         };
 
-        document.addEventListener('DOMContentLoaded', () => {
-            initDarkModeUI();
-            checkUserSetup();
-            initChart();
-            renderAll();
-            document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+        // INTEGRACAO FIREBASE AUTH & FIRESTORE
+        window.addEventListener('load', () => {
+            const checkFirebase = setInterval(() => {
+                if (window.fbAuth) {
+                    clearInterval(checkFirebase);
+                    initFirebaseListener();
+                }
+            }, 100);
         });
 
-        // --- ATUALIZAÇÃO FORÇADA DE CACHE DO APP ---
-        function forceAppUpdate() {
-            if (confirm("Deseja buscar a versão mais recente do aplicativo? Seus dados continuarão salvos.")) {
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.getRegistrations().then(registrations => {
-                        for (let registration of registrations) {
-                            registration.unregister();
-                        }
-                    });
+        function initFirebaseListener() {
+            window.fbMethods.onAuthStateChanged(window.fbAuth, async (user) => {
+                const authScreen = document.getElementById('authScreen');
+                if (user) {
+                    currentUser = user;
+                    authScreen.classList.add('hidden');
+                    updateHeaderUser(user);
+                    await loadUserDataFromFirestore(user.uid);
+                    renderAll();
+                } else {
+                    currentUser = null;
+                    authScreen.classList.remove('hidden');
                 }
-                if ('caches' in window) {
-                    caches.keys().then(names => {
-                        for (let name of names) caches.delete(name);
-                    });
-                }
-                window.location.reload(true);
+            });
+        }
+
+        async function loginWithGoogle() {
+            try {
+                await window.fbMethods.signInWithPopup(window.fbAuth, window.fbProviders.google);
+            } catch (error) {
+                alert("Erro ao fazer login com o Google: " + error.message);
             }
         }
 
-        // --- EXPORTAR E IMPORTAR BACKUP ---
-        function exportBackupData() {
-            const dataToExport = {
-                userProfile: userProfile,
-                transactions: state.transactions,
-                fixedExpenses: state.fixedExpenses,
-                categories: state.categories,
-                goals: state.goals,
-                exportDate: new Date().toISOString()
-            };
-
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
-            const downloadAnchor = document.createElement('a');
-            const fileName = `AJ-MyFinance_Backup_${new Date().toISOString().split('T')[0]}.json`;
-
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", fileName);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        }
-
-        function importBackupData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-
-                    if (importedData.transactions && importedData.categories) {
-                        userProfile = importedData.userProfile || userProfile;
-                        state.transactions = importedData.transactions || [];
-                        state.fixedExpenses = importedData.fixedExpenses || [];
-                        state.categories = importedData.categories || [];
-                        state.goals = importedData.goals || [];
-
-                        saveStoredData('finflow_user', JSON.stringify(userProfile));
-                        saveStoredData('finflow_setup_completed', 'true');
-                        saveData();
-
-                        alert('Backup restaurado com sucesso!');
-                        closeAllModals();
-                    } else {
-                        alert('Arquivo de backup inválido.');
-                    }
-                } catch (err) {
-                    alert('Erro ao carregar arquivo de backup.');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function checkUserSetup() {
-            const isConfigured = getStoredData('finflow_setup_completed');
-            
-            if (!userProfile || isConfigured !== 'true') {
-                document.getElementById('welcomeScreen').classList.remove('hidden');
-            } else {
-                document.getElementById('welcomeScreen').classList.add('hidden');
-                updateHeaderProfile();
-            }
-        }
-
-        function saveUserProfile(e) {
-            e.preventDefault();
-            const name = document.getElementById('setupUserName').value.trim();
-            const subtext = document.getElementById('setupUserSubtext').value.trim() || DEFAULT_SUBTEXT;
-
-            if (name) {
-                userProfile = { name, subtext };
-                saveStoredData('finflow_user', JSON.stringify(userProfile));
-                saveStoredData('finflow_setup_completed', 'true');
-                
-                document.getElementById('welcomeScreen').classList.add('hidden');
-                updateHeaderProfile();
-            }
-        }
-
-        function updateHeaderProfile() {
-            if (userProfile) {
-                document.getElementById('headerGreeting').innerText = `Olá, ${userProfile.name}!`;
-                document.getElementById('headerSubtext').innerText = userProfile.subtext || DEFAULT_SUBTEXT;
-                document.getElementById('userAvatar').innerText = userProfile.name.charAt(0).toUpperCase();
-            }
-        }
-
-        function openProfileModal() {
-            if (userProfile) {
-                document.getElementById('editUserName').value = userProfile.name;
-                document.getElementById('editUserSubtext').value = userProfile.subtext || DEFAULT_SUBTEXT;
-            }
-            openModal('profileModal');
-        }
-
-        function updateUserProfile(e) {
-            e.preventDefault();
-            const name = document.getElementById('editUserName').value.trim();
-            const subtext = document.getElementById('editUserSubtext').value.trim() || DEFAULT_SUBTEXT;
-
-            if (name) {
-                userProfile = { name, subtext };
-                saveStoredData('finflow_user', JSON.stringify(userProfile));
-                updateHeaderProfile();
+        async function logoutFirebase() {
+            if (confirm("Deseja realmente sair do sistema?")) {
+                await window.fbMethods.signOut(window.fbAuth);
                 closeAllModals();
             }
         }
 
-        function saveData() {
+        function updateHeaderUser(user) {
+            const avatar = document.getElementById('userAvatar');
+            const greeting = document.getElementById('headerGreeting');
+            
+            greeting.innerText = `Olá, ${user.displayName || 'Usuário'}!`;
+            if (user.photoURL) {
+                avatar.innerHTML = `<img src="${user.photoURL}" class="w-full h-full rounded-xl object-cover">`;
+            } else {
+                avatar.innerText = (user.displayName || 'U').charAt(0).toUpperCase();
+            }
+        }
+
+        async function syncStateToFirestore() {
+            if (!currentUser) return;
+            const uid = currentUser.uid;
+            const { doc, setDoc } = window.fbMethods;
+
             saveStoredData('finflow_txs', JSON.stringify(state.transactions));
             saveStoredData('finflow_fixed', JSON.stringify(state.fixedExpenses));
             saveStoredData('finflow_cats', JSON.stringify(state.categories));
             saveStoredData('finflow_goals', JSON.stringify(state.goals));
-            renderAll();
+
+            try {
+                await setDoc(doc(window.fbDb, "users", uid), {
+                    transactions: state.transactions,
+                    fixedExpenses: state.fixedExpenses,
+                    categories: state.categories,
+                    goals: state.goals,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+            } catch (err) {
+                console.error("Erro ao salvar no Firestore:", err);
+            }
+        }
+
+        async function loadUserDataFromFirestore(uid) {
+            const { doc, getDoc } = window.fbMethods;
+            try {
+                const docSnap = await getDoc(doc(window.fbDb, "users", uid));
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.transactions) state.transactions = data.transactions;
+                    if (data.fixedExpenses) state.fixedExpenses = data.fixedExpenses;
+                    if (data.categories) state.categories = data.categories;
+                    if (data.goals) state.goals = data.goals;
+
+                    saveStoredData('finflow_txs', JSON.stringify(state.transactions));
+                    saveStoredData('finflow_fixed', JSON.stringify(state.fixedExpenses));
+                    saveStoredData('finflow_cats', JSON.stringify(state.categories));
+                    saveStoredData('finflow_goals', JSON.stringify(state.goals));
+                }
+            } catch (err) {
+                console.error("Erro ao carregar dados do Firestore:", err);
+            }
+        }
+
+        // RENDERIZAÇÃO E INTERACTION DA SPA
+        function renderAll() {
+            renderMonthLabel();
+            renderDashboard();
+            renderTransactions();
+            renderFixedExpenses();
+            renderBudgets();
+            renderGoals();
+            populateCategoryDropdowns();
+        }
+
+        function renderMonthLabel() {
+            document.getElementById('currentMonthLabel').innerText = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
         }
 
         function changeMonth(delta) {
@@ -679,28 +687,63 @@
             renderAll();
         }
 
-        function renderAll() {
-            updateMonthLabel();
-            renderDashboard();
-            renderTransactions();
-            renderFixedExpenses();
-            renderBudgets();
-            renderGoals();
-            renderCategoryOptions();
-        }
-
-        function updateMonthLabel() {
-            const m = monthNames[currentDate.getMonth()];
-            const y = currentDate.getFullYear();
-            document.getElementById('currentMonthLabel').innerText = `${m} ${y}`;
-        }
-
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
 
-            document.querySelectorAll('.nav-item').forEach(el => el.className = 'nav-item flex-1 flex flex-col items-center py-1 text-gray-400');
-            document.getElementById(`nav-${tabId}`).className = 'nav-item flex-1 flex flex-col items-center py-1 text-brand-600 dark:text-brand-400';
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.replace('text-brand-600', 'text-gray-400'));
+            document.getElementById(`nav-${tabId}`).classList.replace('text-gray-400', 'text-brand-600');
+        }
+
+        function forceAppUpdate() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    for (let registration of registrations) {
+                        registration.update();
+                    }
+                });
+            }
+            window.location.reload(true);
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('finflow_theme', isDark ? 'dark' : 'light');
+            document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-xs' : 'fas fa-moon text-xs';
+        }
+
+        // MODAIS CONTROL
+        function openProfileModal() {
+            if (currentUser) {
+                document.getElementById('editUserName').value = currentUser.displayName || '';
+            }
+            openModal('profileModal');
+        }
+
+        function openTxModal() {
+            document.getElementById('txForm').reset();
+            document.getElementById('txId').value = '';
+            document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+            openModal('txModal');
+        }
+
+        function openFixedModal() {
+            document.getElementById('fixedForm').reset();
+            document.getElementById('fixedId').value = '';
+            openModal('fixedModal');
+        }
+
+        function openCategoryModal() {
+            document.getElementById('categoryForm').reset();
+            document.getElementById('catId').value = '';
+            openModal('categoryModal');
+        }
+
+        function openGoalModal() {
+            document.getElementById('goalForm').reset();
+            document.getElementById('goalId').value = '';
+            openModal('goalModal');
         }
 
         function openModal(id) {
@@ -713,194 +756,48 @@
             document.querySelectorAll('.bottom-sheet').forEach(el => el.classList.remove('active'));
         }
 
+        // SALVAMENTO DE DADOS COM SYNCHRONIZATION
+        async function saveTransaction(e) {
+            e.preventDefault();
+            const id = document.getElementById('txId').value || Date.now().toString();
+            const tx = {
+                id,
+                type: window.currentTxType || 'expense',
+                desc: document.getElementById('txDesc').value,
+                amount: parseFloat(document.getElementById('txAmount').value),
+                paymentMethod: document.getElementById('txPaymentMethod').value,
+                category: document.getElementById('txCategory').value,
+                date: document.getElementById('txDate').value
+            };
+
+            const idx = state.transactions.findIndex(t => t.id === id);
+            if (idx >= 0) state.transactions[idx] = tx;
+            else state.transactions.unshift(tx);
+
+            await syncStateToFirestore();
+            closeAllModals();
+            renderAll();
+        }
+
         function setTxType(type) {
-            state.currentTxType = type;
+            window.currentTxType = type;
             const expenseBtn = document.getElementById('typeExpenseBtn');
             const incomeBtn = document.getElementById('typeIncomeBtn');
 
             if (type === 'expense') {
-                expenseBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-600 shadow-sm text-rose-600';
-                incomeBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-gray-500';
+                expenseBtn.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-600 shadow-sm text-rose-600";
+                incomeBtn.className = "flex-1 py-2 text-xs font-bold rounded-lg text-gray-500";
             } else {
-                incomeBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-600 shadow-sm text-emerald-600';
-                expenseBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-gray-500';
+                incomeBtn.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-600 shadow-sm text-emerald-600";
+                expenseBtn.className = "flex-1 py-2 text-xs font-bold rounded-lg text-gray-500";
             }
         }
 
-        function openTxModal(tx = null) {
-            if (tx) {
-                document.getElementById('txId').value = tx.id;
-                document.getElementById('txDesc').value = tx.desc;
-                document.getElementById('txAmount').value = tx.amount;
-                document.getElementById('txCategory').value = tx.category;
-                document.getElementById('txPaymentMethod').value = tx.paymentMethod || 'Pix';
-                document.getElementById('txDate').value = tx.date;
-                document.getElementById('txModalTitle').innerText = 'Editar Transação';
-                setTxType(tx.type);
-            } else {
-                document.getElementById('txForm').reset();
-                document.getElementById('txId').value = '';
-                document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
-                document.getElementById('txModalTitle').innerText = 'Nova Transação';
-                setTxType('expense');
-            }
-            openModal('txModal');
-        }
-
-        function saveTransaction(e) {
+        async function saveFixed(e) {
             e.preventDefault();
-            const id = document.getElementById('txId').value;
-            const newTx = {
-                id: id || Date.now().toString(),
-                desc: document.getElementById('txDesc').value,
-                amount: parseFloat(document.getElementById('txAmount').value),
-                category: document.getElementById('txCategory').value,
-                paymentMethod: document.getElementById('txPaymentMethod').value,
-                type: state.currentTxType,
-                date: document.getElementById('txDate').value
-            };
-
-            if (id) {
-                const idx = state.transactions.findIndex(t => t.id === id);
-                if (idx !== -1) state.transactions[idx] = newTx;
-            } else {
-                state.transactions.unshift(newTx);
-            }
-
-            saveData();
-            closeAllModals();
-        }
-
-        function deleteTx(id) {
-            if (confirm('Deseja excluir esta transação?')) {
-                state.transactions = state.transactions.filter(t => t.id !== id);
-                saveData();
-            }
-        }
-
-        function getFilteredTransactionsForCurrentMonth() {
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-
-            return state.transactions.filter(t => {
-                const tDate = new Date(t.date + 'T00:00:00');
-                return tDate.getFullYear() === year && tDate.getMonth() === month;
-            });
-        }
-
-        function renderDashboard() {
-            const monthTxs = getFilteredTransactionsForCurrentMonth();
-            const income = monthTxs.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-            const expense = monthTxs.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-            const balance = income - expense;
-
-            document.getElementById('dashIncome').innerText = `R$ ${income.toFixed(2)}`;
-            document.getElementById('dashExpense').innerText = `R$ ${expense.toFixed(2)}`;
-            document.getElementById('dashBalance').innerText = `R$ ${balance.toFixed(2)}`;
-
-            const recent = monthTxs.slice(0, 4);
-            const recentList = document.getElementById('dashRecentList');
-            recentList.innerHTML = recent.map(t => `
-                <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-none">
-                    <div>
-                        <p class="text-xs font-semibold">${t.desc}</p>
-                        <span class="text-[10px] text-gray-400">${t.category} • ${t.paymentMethod || 'Pix'}</span>
-                    </div>
-                    <span class="text-xs font-bold ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}">
-                        ${t.type === 'income' ? '+' : '-'} R$ ${t.amount.toFixed(2)}
-                    </span>
-                </div>
-            `).join('') || '<p class="text-xs text-gray-400">Nenhuma transação neste mês.</p>';
-
-            updateChart(monthTxs);
-        }
-
-        function renderTransactions() {
-            const monthTxs = getFilteredTransactionsForCurrentMonth();
-            const search = document.getElementById('txSearch').value.toLowerCase();
-            const type = document.getElementById('txTypeFilter').value;
-            const cat = document.getElementById('txCatFilter').value;
-
-            const filtered = monthTxs.filter(t => {
-                const matchesSearch = t.desc.toLowerCase().includes(search);
-                const matchesType = type === 'all' || t.type === type;
-                const matchesCat = cat === 'all' || t.category === cat;
-                return matchesSearch && matchesType && matchesCat;
-            });
-
-            const list = document.getElementById('fullTxList');
-            list.innerHTML = filtered.map(t => `
-                <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex justify-between items-center">
-                    <div>
-                        <p class="text-xs font-bold">${t.desc}</p>
-                        <p class="text-[10px] text-gray-400">${t.category} • ${t.paymentMethod || 'Pix'} • ${t.date}</p>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <span class="text-xs font-bold ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}">
-                            ${t.type === 'income' ? '+' : '-'} R$ ${t.amount.toFixed(2)}
-                        </span>
-                        <button onclick="openTxModal(${JSON.stringify(t).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-xs">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="deleteTx('${t.id}')" class="text-gray-300 hover:text-rose-500 text-xs">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma transação encontrada no mês.</p>';
-        }
-
-        function renderFixedExpenses() {
-            const list = document.getElementById('fixedList');
-            const currentMonthTxs = getFilteredTransactionsForCurrentMonth();
-
-            list.innerHTML = state.fixedExpenses.map(f => {
-                const isPaid = currentMonthTxs.some(t => t.desc.includes(f.desc) && t.type === 'expense');
-
-                return `
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex justify-between items-center">
-                        <div>
-                            <p class="text-xs font-bold">${f.desc}</p>
-                            <p class="text-[10px] text-gray-400">Vence dia ${f.day} • ${f.category} • ${f.paymentMethod}</p>
-                            <span class="text-xs font-bold text-gray-800 dark:text-gray-100 mt-1 block">R$ ${f.amount.toFixed(2)}</span>
-                        </div>
-                        <div class="flex flex-col items-end gap-2">
-                            ${isPaid 
-                                ? `<span class="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 font-bold px-2.5 py-1 rounded-lg"><i class="fas fa-check mr-1"></i>Pago</span>`
-                                : `<button onclick="confirmFixedPayment('${f.id}')" class="text-xs bg-brand-600 text-white font-bold px-3 py-1.5 rounded-xl shadow-sm active:scale-95 transition-transform">Confirmar</button>`
-                            }
-                            <div class="flex items-center gap-2">
-                                <button onclick="openFixedModal(${JSON.stringify(f).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-[10px]"><i class="fas fa-edit mr-0.5"></i>Editar</button>
-                                <button onclick="deleteFixed('${f.id}')" class="text-gray-300 hover:text-rose-500 text-[10px]"><i class="fas fa-trash mr-0.5"></i>Remover</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma despesa fixa cadastrada.</p>';
-        }
-
-        function openFixedModal(fixed = null) {
-            if (fixed) {
-                document.getElementById('fixedId').value = fixed.id;
-                document.getElementById('fixedDesc').value = fixed.desc;
-                document.getElementById('fixedAmount').value = fixed.amount;
-                document.getElementById('fixedDay').value = fixed.day;
-                document.getElementById('fixedCategory').value = fixed.category;
-                document.getElementById('fixedPaymentMethod').value = fixed.paymentMethod || 'Pix';
-                document.getElementById('fixedModalTitle').innerText = 'Editar Despesa Fixa';
-            } else {
-                document.getElementById('fixedForm').reset();
-                document.getElementById('fixedId').value = '';
-                document.getElementById('fixedModalTitle').innerText = 'Nova Despesa Fixa';
-            }
-            openModal('fixedModal');
-        }
-
-        function saveFixed(e) {
-            e.preventDefault();
-            const id = document.getElementById('fixedId').value;
-            const fixedData = {
-                id: id || Date.now().toString(),
+            const id = document.getElementById('fixedId').value || 'f_' + Date.now();
+            const fixed = {
+                id,
                 desc: document.getElementById('fixedDesc').value,
                 amount: parseFloat(document.getElementById('fixedAmount').value),
                 day: parseInt(document.getElementById('fixedDay').value),
@@ -908,328 +805,235 @@
                 paymentMethod: document.getElementById('fixedPaymentMethod').value
             };
 
-            if (id) {
-                const idx = state.fixedExpenses.findIndex(f => f.id === id);
-                if (idx !== -1) state.fixedExpenses[idx] = fixedData;
-            } else {
-                state.fixedExpenses.push(fixedData);
-            }
+            const idx = state.fixedExpenses.findIndex(f => f.id === id);
+            if (idx >= 0) state.fixedExpenses[idx] = fixed;
+            else state.fixedExpenses.push(fixed);
 
-            saveData();
+            await syncStateToFirestore();
             closeAllModals();
+            renderAll();
         }
 
-        function deleteFixed(id) {
-            if (confirm('Excluir esta despesa fixa?')) {
-                state.fixedExpenses = state.fixedExpenses.filter(f => f.id !== id);
-                saveData();
-            }
-        }
-
-        function confirmFixedPayment(id) {
-            const fixed = state.fixedExpenses.find(f => f.id === id);
-            if (!fixed) return;
-
-            const year = currentDate.getFullYear();
-            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-            const day = String(fixed.day).padStart(2, '0');
-
-            const paidTx = {
-                id: Date.now().toString(),
-                type: 'expense',
-                desc: `[Fixa] ${fixed.desc}`,
-                amount: fixed.amount,
-                category: fixed.category,
-                paymentMethod: fixed.paymentMethod,
-                date: `${year}-${month}-${day}`
+        async function saveCategory(e) {
+            e.preventDefault();
+            const id = document.getElementById('catId').value || 'c_' + Date.now();
+            const cat = {
+                id,
+                name: document.getElementById('catName').value,
+                color: document.getElementById('catColor').value,
+                limit: parseFloat(document.getElementById('catLimit').value) || 0
             };
 
-            state.transactions.unshift(paidTx);
-            saveData();
-        }
+            const idx = state.categories.findIndex(c => c.id === id);
+            if (idx >= 0) state.categories[idx] = cat;
+            else state.categories.push(cat);
 
-        function openReportModal() {
-            openModal('reportModal');
-            renderAnnualReport();
-        }
-
-        function renderAnnualReport() {
-            const currentYear = currentDate.getFullYear();
-            const monthlyData = [];
-
-            for (let m = 0; m < 12; m++) {
-                const txs = state.transactions.filter(t => {
-                    const d = new Date(t.date + 'T00:00:00');
-                    return d.getFullYear() === currentYear && d.getMonth() === m;
-                });
-
-                const inc = txs.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
-                const exp = txs.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
-
-                monthlyData.push({ month: monthNames[m], income: inc, expense: exp });
-            }
-
-            const list = document.getElementById('annualReportList');
-            list.innerHTML = monthlyData.map(d => `
-                <div class="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 text-xs">
-                    <span class="font-bold w-20">${d.month}</span>
-                    <span class="text-emerald-500 font-semibold">+R$ ${d.income.toFixed(0)}</span>
-                    <span class="text-rose-500 font-semibold">-R$ ${d.expense.toFixed(0)}</span>
-                    <span class="font-bold ${d.income - d.expense >= 0 ? 'text-gray-800 dark:text-white' : 'text-rose-600'}">R$ ${(d.income - d.expense).toFixed(0)}</span>
-                </div>
-            `).join('');
-
-            const ctx = document.getElementById('annualComparisonChart').getContext('2d');
-            if (state.annualChart) state.annualChart.destroy();
-
-            state.annualChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: monthNames.map(m => m.substring(0, 3)),
-                    datasets: [
-                        { label: 'Receitas', data: monthlyData.map(d => d.income), backgroundColor: '#10b981' },
-                        { label: 'Despesas', data: monthlyData.map(d => d.expense), backgroundColor: '#f43f5e' }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { font: { size: 10 } } } }
-                }
-            });
-        }
-
-        function renderBudgets() {
-            const list = document.getElementById('budgetList');
-            const monthTxs = getFilteredTransactionsForCurrentMonth();
-
-            list.innerHTML = state.categories.map(cat => {
-                const spent = monthTxs
-                    .filter(t => t.category === cat.name && t.type === 'expense')
-                    .reduce((acc, t) => acc + t.amount, 0);
-                const limit = cat.limit || 0;
-                const pct = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
-                const isOver = limit > 0 && spent > limit;
-
-                return `
-                    <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs font-bold flex items-center gap-2">
-                                <span class="w-3 h-3 rounded-full" style="background:${cat.color}"></span>
-                                ${cat.name}
-                            </span>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[10px] ${isOver ? 'text-rose-600 font-bold' : 'text-gray-400'}">
-                                    R$ ${spent.toFixed(0)} ${limit > 0 ? `/ R$ ${limit}` : '(sem limite)'}
-                                </span>
-                                <button onclick="openCategoryModal(${JSON.stringify(cat).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-xs ml-1">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="deleteCategory('${cat.id}')" class="text-gray-300 hover:text-rose-500 text-xs">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                        ${limit > 0 ? `
-                        <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full ${isOver ? 'bg-rose-500' : 'bg-brand-600'}" style="width: ${pct}%"></div>
-                        </div>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma categoria cadastrada.</p>';
-        }
-
-        function openCategoryModal(cat = null) {
-            if (cat) {
-                document.getElementById('catId').value = cat.id;
-                document.getElementById('catName').value = cat.name;
-                document.getElementById('catColor').value = cat.color || '#6366f1';
-                document.getElementById('catLimit').value = cat.limit || '';
-                document.getElementById('categoryModalTitle').innerText = 'Editar Categoria / Limite';
-            } else {
-                document.getElementById('categoryForm').reset();
-                document.getElementById('catId').value = '';
-                document.getElementById('catColor').value = '#6366f1';
-                document.getElementById('categoryModalTitle').innerText = 'Nova Categoria e Limite';
-            }
-            openModal('categoryModal');
-        }
-
-        function saveCategory(e) {
-            e.preventDefault();
-            const id = document.getElementById('catId').value;
-            const name = document.getElementById('catName').value;
-            const color = document.getElementById('catColor').value;
-            const limit = parseFloat(document.getElementById('catLimit').value) || 0;
-
-            if (id) {
-                const cat = state.categories.find(c => c.id === id);
-                if (cat) {
-                    const oldName = cat.name;
-                    cat.name = name;
-                    cat.color = color;
-                    cat.limit = limit;
-
-                    if (oldName !== name) {
-                        state.transactions.forEach(t => { if (t.category === oldName) t.category = name; });
-                        state.fixedExpenses.forEach(f => { if (f.category === oldName) f.category = name; });
-                    }
-                }
-            } else {
-                state.categories.push({ id: Date.now().toString(), name, color, limit });
-            }
-
-            saveData();
+            await syncStateToFirestore();
             closeAllModals();
+            renderAll();
         }
 
-        function deleteCategory(id) {
-            if (confirm('Excluir esta categoria?')) {
-                state.categories = state.categories.filter(c => c.id !== id);
-                saveData();
-            }
-        }
-
-        function renderCategoryOptions() {
-            const selects = [document.getElementById('txCategory'), document.getElementById('txCatFilter'), document.getElementById('fixedCategory')];
-            selects.forEach(sel => {
-                if (!sel) return;
-                const isFilter = sel.id === 'txCatFilter';
-                sel.innerHTML = isFilter ? '<option value="all">Todas categorias</option>' : '';
-                state.categories.forEach(c => {
-                    sel.innerHTML += `<option value="${c.name}">${c.name}</option>`;
-                });
-            });
-        }
-
-        function renderGoals() {
-            const list = document.getElementById('goalsList');
-            list.innerHTML = state.goals.map(g => {
-                const pct = Math.min(100, Math.round((g.current / g.target) * 100));
-                return `
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
-                        <div class="flex justify-between items-center">
-                            <h4 class="text-xs font-bold">${g.title}</h4>
-                            <div class="flex items-center gap-2">
-                                <button onclick="depositGoal('${g.id}')" class="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-lg active:scale-95 transition-transform">+ Aporte</button>
-                                <button onclick="openGoalModal(${JSON.stringify(g).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-xs"><i class="fas fa-edit"></i></button>
-                                <button onclick="deleteGoal('${g.id}')" class="text-gray-300 hover:text-rose-500 text-xs"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </div>
-                        <div class="flex justify-between text-[10px] text-gray-400">
-                            <span>R$ ${g.current.toFixed(2)} acumulados (${pct}%)</span>
-                            <span>Meta: R$ ${g.target.toFixed(2)}</span>
-                        </div>
-                        <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                            <div class="h-full bg-emerald-500 rounded-full" style="width: ${pct}%"></div>
-                        </div>
-                    </div>
-                `;
-            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma meta cadastrada.</p>';
-        }
-
-        function depositGoal(id) {
-            const val = prompt('Qual o valor do aporte para esta meta (R$)?');
-            const amount = parseFloat(val);
-            if (!isNaN(amount) && amount > 0) {
-                const goal = state.goals.find(g => g.id === id);
-                if (goal) {
-                    goal.current += amount;
-                    saveData();
-                }
-            }
-        }
-
-        function openGoalModal(goal = null) {
-            if (goal) {
-                document.getElementById('goalId').value = goal.id;
-                document.getElementById('goalTitle').value = goal.title;
-                document.getElementById('goalTarget').value = goal.target;
-                document.getElementById('goalCurrent').value = goal.current;
-                document.getElementById('goalDeadline').value = goal.deadline;
-                document.getElementById('goalModalTitle').innerText = 'Editar Meta';
-            } else {
-                document.getElementById('goalForm').reset();
-                document.getElementById('goalId').value = '';
-                document.getElementById('goalModalTitle').innerText = 'Nova Meta';
-            }
-            openModal('goalModal');
-        }
-
-        function saveGoal(e) {
+        async function saveGoal(e) {
             e.preventDefault();
-            const id = document.getElementById('goalId').value;
-            const goalData = {
-                id: id || Date.now().toString(),
+            const id = document.getElementById('goalId').value || 'g_' + Date.now();
+            const goal = {
+                id,
                 title: document.getElementById('goalTitle').value,
                 target: parseFloat(document.getElementById('goalTarget').value),
                 current: parseFloat(document.getElementById('goalCurrent').value),
                 deadline: document.getElementById('goalDeadline').value
             };
 
-            if (id) {
-                const idx = state.goals.findIndex(g => g.id === id);
-                if (idx !== -1) state.goals[idx] = goalData;
-            } else {
-                state.goals.push(goalData);
-            }
+            const idx = state.goals.findIndex(g => g.id === id);
+            if (idx >= 0) state.goals[idx] = goal;
+            else state.goals.push(goal);
 
-            saveData();
+            await syncStateToFirestore();
             closeAllModals();
+            renderAll();
         }
 
-        function deleteGoal(id) {
-            if (confirm('Excluir esta meta?')) {
-                state.goals = state.goals.filter(g => g.id !== id);
-                saveData();
-            }
+        // EXPORT / IMPORT BACKUP
+        function exportBackupData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `AJ_MyFinance_Backup_${new Date().toISOString().split('T')[0]}.json`);
+            dlAnchorElem.click();
         }
 
-        function initChart() {
-            const ctx = document.getElementById('categoryChartMobile').getContext('2d');
-            state.chart = new Chart(ctx, {
+        function importBackupData(event) {
+            const fileReader = new FileReader();
+            fileReader.onload = async function (e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.transactions) state.transactions = parsed.transactions;
+                    if (parsed.fixedExpenses) state.fixedExpenses = parsed.fixedExpenses;
+                    if (parsed.categories) state.categories = parsed.categories;
+                    if (parsed.goals) state.goals = parsed.goals;
+
+                    await syncStateToFirestore();
+                    renderAll();
+                    alert("Backup importado com sucesso!");
+                } catch (err) {
+                    alert("Erro ao importar o arquivo de backup.");
+                }
+            };
+            fileReader.readAsText(event.target.files[0]);
+        }
+
+        // METODOS AUXILIARES DE RENDERIZACAO
+        function populateCategoryDropdowns() {
+            const selects = [document.getElementById('txCategory'), document.getElementById('fixedCategory'), document.getElementById('txCatFilter')];
+            selects.forEach(select => {
+                if (!select) return;
+                const isFilter = select.id === 'txCatFilter';
+                select.innerHTML = isFilter ? '<option value="all">Todas categorias</option>' : '';
+                state.categories.forEach(c => {
+                    select.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                });
+            });
+        }
+
+        function renderDashboard() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            const monthTxs = state.transactions.filter(t => {
+                const d = new Date(t.date);
+                return d.getFullYear() === year && d.getMonth() === month;
+            });
+
+            const income = monthTxs.filter(t => t.type === 'income').reduce((a, b) => a + b.amount, 0);
+            const expense = monthTxs.filter(t => t.type === 'expense').reduce((a, b) => a + b.amount, 0);
+
+            document.getElementById('dashIncome').innerText = `R$ ${income.toFixed(2)}`;
+            document.getElementById('dashExpense').innerText = `R$ ${expense.toFixed(2)}`;
+            document.getElementById('dashBalance').innerText = `R$ ${(income - expense).toFixed(2)}`;
+
+            renderRecentList(monthTxs);
+            renderChart(monthTxs);
+        }
+
+        function renderRecentList(txs) {
+            const container = document.getElementById('dashRecentList');
+            container.innerHTML = txs.slice(0, 5).map(t => `
+                <div class="flex justify-between items-center p-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-xs">
+                    <div>
+                        <span class="font-bold block">${t.desc}</span>
+                        <span class="text-[10px] text-gray-400">${t.category} • ${t.paymentMethod}</span>
+                    </div>
+                    <span class="font-bold ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}">
+                        ${t.type === 'income' ? '+' : '-'} R$ ${t.amount.toFixed(2)}
+                    </span>
+                </div>
+            `).join('') || '<p class="text-xs text-gray-400 text-center py-2">Nenhuma transação neste mês.</p>';
+        }
+
+        function renderChart(txs) {
+            const canvas = document.getElementById('categoryChartMobile');
+            if (!canvas) return;
+
+            const expenses = txs.filter(t => t.type === 'expense');
+            const catTotals = {};
+
+            expenses.forEach(t => {
+                catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
+            });
+
+            const labels = Object.keys(catTotals);
+            const data = Object.values(catTotals);
+
+            if (window.myChart) window.myChart.destroy();
+
+            window.myChart = new Chart(canvas, {
                 type: 'doughnut',
-                data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
+                data: {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor: ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899']
+                    }]
+                },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
+                    plugins: { legend: { display: false } }
                 }
             });
         }
 
-        function updateChart(monthTxs) {
-            if (!state.chart) return;
-            const expenses = monthTxs.filter(t => t.type === 'expense');
-            const dataMap = {};
+        function renderTransactions() {
+            const container = document.getElementById('fullTxList');
+            if (!container) return;
+            const search = document.getElementById('txSearch').value.toLowerCase();
+            const typeFilter = document.getElementById('txTypeFilter').value;
+            const catFilter = document.getElementById('txCatFilter').value;
 
-            expenses.forEach(t => {
-                dataMap[t.category] = (dataMap[t.category] || 0) + t.amount;
+            const filtered = state.transactions.filter(t => {
+                const matchSearch = t.desc.toLowerCase().includes(search);
+                const matchType = typeFilter === 'all' || t.type === typeFilter;
+                const matchCat = catFilter === 'all' || t.category === catFilter;
+                return matchSearch && matchType && matchCat;
             });
 
-            const labels = Object.keys(dataMap);
-            const data = Object.values(dataMap);
-            const colors = labels.map(l => {
-                const cat = state.categories.find(c => c.name === l);
-                return cat ? cat.color : '#6366f1';
-            });
-
-            state.chart.data.labels = labels;
-            state.chart.data.datasets[0].data = data;
-            state.chart.data.datasets[0].backgroundColor = colors;
-            state.chart.update();
+            container.innerHTML = filtered.map(t => `
+                <div class="flex justify-between items-center p-3 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm text-xs">
+                    <div>
+                        <span class="font-bold block">${t.desc}</span>
+                        <span class="text-[10px] text-gray-400">${t.date} • ${t.category}</span>
+                    </div>
+                    <span class="font-bold ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}">
+                        R$ ${t.amount.toFixed(2)}
+                    </span>
+                </div>
+            `).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma transação encontrada.</p>';
         }
 
-        function initDarkModeUI() {
-            const isDark = document.documentElement.classList.contains('dark');
-            document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-xs' : 'fas fa-moon text-xs';
+        function renderFixedExpenses() {
+            const container = document.getElementById('fixedList');
+            if (!container) return;
+            container.innerHTML = state.fixedExpenses.map(f => `
+                <div class="p-3 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm text-xs flex justify-between items-center">
+                    <div>
+                        <span class="font-bold block">${f.desc}</span>
+                        <span class="text-[10px] text-gray-400">Vence dia ${f.day} • ${f.category}</span>
+                    </div>
+                    <span class="font-bold text-gray-900 dark:text-white">R$ ${f.amount.toFixed(2)}</span>
+                </div>
+            `).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma despesa fixa cadastrada.</p>';
         }
 
-        function toggleDarkMode() {
-            const isDark = document.documentElement.classList.toggle('dark');
-            document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-xs' : 'fas fa-moon text-xs';
-            saveStoredData('finflow_theme', isDark ? 'dark' : 'light');
+        function renderBudgets() {
+            const container = document.getElementById('budgetList');
+            if (!container) return;
+            container.innerHTML = state.categories.map(c => `
+                <div class="p-3 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm text-xs">
+                    <div class="flex justify-between font-bold mb-1">
+                        <span>${c.name}</span>
+                        <span>Limite: R$ ${c.limit.toFixed(2)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderGoals() {
+            const container = document.getElementById('goalsList');
+            if (!container) return;
+            container.innerHTML = state.goals.map(g => {
+                const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+                return `
+                    <div class="p-3 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm text-xs space-y-2">
+                        <div class="flex justify-between font-bold">
+                            <span>${g.title}</span>
+                            <span>${pct}%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                            <div class="bg-brand-600 h-full" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma meta cadastrada.</p>';
         }
     </script>
 </body>
