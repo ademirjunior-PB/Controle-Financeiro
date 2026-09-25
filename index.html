@@ -6,12 +6,12 @@
   <title>AJ-MyFinance</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome / Icons -->
+  <!-- FontAwesome / Ícones -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col justify-between">
 
-  <!-- Tela de Login / Autenticação -->
+  <!-- TELA DE LOGIN / AUTENTICAÇÃO -->
   <div id="auth-screen" class="flex items-center justify-center min-h-screen bg-slate-900 px-4">
     <div class="max-w-md w-full bg-white rounded-xl shadow-2xl p-8 space-y-6">
       <div class="text-center">
@@ -19,7 +19,7 @@
         <p class="text-sm text-slate-500 mt-1">Gerencie suas finanças com facilidade</p>
       </div>
 
-      <!-- Formulário Email/Senha -->
+      <!-- Formulário Email e Senha -->
       <form id="email-login-form" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">E-mail</label>
@@ -45,8 +45,8 @@
         <div class="flex-grow border-t border-slate-300"></div>
       </div>
 
-      <!-- Login com Google -->
-      <button id="btn-google-login" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 px-4 rounded-lg shadow-sm transition">
+      <!-- Botão Login com Google -->
+      <button id="btn-google-login" type="button" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 px-4 rounded-lg shadow-sm transition">
         <svg class="w-5 h-5" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -60,9 +60,9 @@
     </div>
   </div>
 
-  <!-- Dashboard Principal do App -->
+  <!-- DASHBOARD PRINCIPAL DO APLICATIVO -->
   <div id="app-screen" class="hidden min-h-screen flex flex-col">
-    <!-- Navbar / Header -->
+    <!-- Cabeçalho -->
     <header class="bg-slate-900 text-white shadow-md">
       <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         <div class="flex items-center gap-3">
@@ -78,10 +78,10 @@
       </div>
     </header>
 
-    <!-- Conteúdo Principal / Interface do Finanças -->
+    <!-- Conteúdo Principal -->
     <main class="max-w-7xl mx-auto w-full px-4 py-6 flex-grow space-y-6">
       
-      <!-- Cards Resumo Finanças -->
+      <!-- Cards Resumo das Finanças -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
           <p class="text-sm font-medium text-slate-500">Receitas</p>
@@ -97,7 +97,7 @@
         </div>
       </div>
 
-      <!-- Formulário de Nova / Edição de Transação -->
+      <!-- Formulário de Adicionar e Editar Transação -->
       <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <h3 id="form-title" class="text-lg font-bold text-slate-800 mb-4">Adicionar Transação</h3>
         <form id="transaction-form" class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -132,7 +132,7 @@
         </form>
       </div>
 
-      <!-- Tabela de Transações com Editar/Excluir -->
+      <!-- Tabela de Transações (com Editar/Excluir) -->
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
           <h3 class="font-bold text-slate-800">Transações Recentes</h3>
@@ -148,7 +148,7 @@
               </tr>
             </thead>
             <tbody id="transactions-list" class="divide-y divide-slate-100 text-sm">
-              <!-- As transações serão inseridas aqui dinamicamente -->
+              <!-- As transações serão inseridas aqui via JavaScript -->
             </tbody>
           </table>
         </div>
@@ -156,7 +156,7 @@
     </main>
   </div>
 
-  <!-- Firebase v10 SDKs (Modular) -->
+  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
@@ -180,9 +180,9 @@
       getDocs
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Sua configuração do Firebase
+    // Configuração do Firebase para o projeto aj-connectpb
     const firebaseConfig = {
-      apiKey: "AIzaSyD-YOUR_KEY", // Mantenha suas credenciais originais aqui
+      apiKey: "AIzaSyD-YOUR_KEY",
       authDomain: "aj-connectpb.firebaseapp.com",
       projectId: "aj-connectpb",
       storageBucket: "aj-connectpb.appspot.com",
@@ -196,14 +196,13 @@
     const db = getFirestore(app);
     const googleProvider = new GoogleAuthProvider();
 
-    // Elementos DOM
+    // Mapeamento de Elementos da Tela
     const authScreen = document.getElementById("auth-screen");
     const appScreen = document.getElementById("app-screen");
     const authError = document.getElementById("auth-error");
 
     const emailInput = document.getElementById("auth-email");
     const passwordInput = document.getElementById("auth-password");
-    const btnLoginEmail = document.getElementById("btn-login-email");
     const btnSignupEmail = document.getElementById("btn-signup-email");
     const btnGoogleLogin = document.getElementById("btn-google-login");
     const btnLogout = document.getElementById("btn-logout");
@@ -228,7 +227,7 @@
     let unsubscribeFirestore = null;
     let localTransactions = [];
 
-    // Transações Padrão de Exemplo (para novos usuários)
+    // Transações padrão de exemplo para o primeiro acesso
     const defaultTransactions = [
       { description: "Salário Mensal", amount: 5000.00, type: "income" },
       { description: "Supermercado", amount: 450.00, type: "expense" },
@@ -237,31 +236,31 @@
 
     // --- AUTENTICAÇÃO ---
 
-    // Login com Google
+    // Login Google
     btnGoogleLogin.addEventListener("click", async () => {
       try {
         hideError();
         await signInWithPopup(auth, googleProvider);
       } catch (err) {
-        showError("Erro ao autenticar com o Google: " + err.message);
+        showError("Erro ao entrar com Google: " + err.message);
       }
     });
 
-    // Login com E-mail/Senha
+    // Login Email/Senha
     document.getElementById("email-login-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       try {
         hideError();
         await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
       } catch (err) {
-        showError("Erro no login: Verifique seu e-mail e senha.");
+        showError("Erro de autenticação. Verifique e-mail e senha.");
       }
     });
 
-    // Cadastro de E-mail/Senha
+    // Cadastro Email/Senha
     btnSignupEmail.addEventListener("click", async () => {
       if (!emailInput.value || !passwordInput.value) {
-        showError("Preencha e-mail e senha para cadastrar.");
+        showError("Informe e-mail e senha para realizar o cadastro.");
         return;
       }
       try {
@@ -278,19 +277,17 @@
       signOut(auth);
     });
 
-    // Monitor do Estado de Login
+    // Monitor do estado do usuário
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUser = user;
         authScreen.classList.add("hidden");
         appScreen.classList.remove("hidden");
 
-        // Nome e Foto do Perfil
         const name = user.displayName || user.email.split('@')[0];
         userDisplayName.textContent = `Olá, ${name}! 👋`;
         userPhoto.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`;
 
-        // Carrega dados do Firestore
         setupFirestoreListener(user.uid);
       } else {
         currentUser = null;
@@ -305,7 +302,6 @@
     async function setupFirestoreListener(userId) {
       const userDocRef = collection(db, "users", userId, "transactions");
 
-      // Se for a primeira vez do usuário, salva dados de exemplo
       const snapshot = await getDocs(userDocRef);
       if (snapshot.empty) {
         for (const tx of defaultTransactions) {
@@ -313,7 +309,6 @@
         }
       }
 
-      // Escuta mudanças em tempo real
       unsubscribeFirestore = onSnapshot(userDocRef, (querySnapshot) => {
         localTransactions = [];
         querySnapshot.forEach((doc) => {
@@ -323,7 +318,7 @@
       });
     }
 
-    // Salvar ou Editar Transação
+    // Criar/Editar Transação
     txForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!currentUser) return;
@@ -338,17 +333,15 @@
       const userDocRef = collection(db, "users", currentUser.uid, "transactions");
 
       if (txId) {
-        // Atualizar Transação Existente
         await updateDoc(doc(db, "users", currentUser.uid, "transactions", txId), data);
       } else {
-        // Criar Nova Transação
         await addDoc(userDocRef, { ...data, createdAt: serverTimestamp() });
       }
 
       resetForm();
     });
 
-    // Função para Editar (Preenche o Formulário)
+    // Função de Editar
     window.editTransaction = function(id) {
       const tx = localTransactions.find(t => t.id === id);
       if (!tx) return;
@@ -362,7 +355,6 @@
       btnCancelEdit.classList.remove("hidden");
     };
 
-    // Cancelar Edição
     btnCancelEdit.addEventListener("click", resetForm);
 
     function resetForm() {
@@ -372,14 +364,14 @@
       btnCancelEdit.classList.add("hidden");
     }
 
-    // Função para Excluir
+    // Função de Excluir
     window.deleteTransaction = async function(id) {
-      if (confirm("Deseja realmente excluir esta transação?")) {
+      if (confirm("Deseja apagar esta transação?")) {
         await deleteDoc(doc(db, "users", currentUser.uid, "transactions", id));
       }
     };
 
-    // RENDERIZAR NA TELA (Soma dos Totais + Lista)
+    // Renderização dos Dados na Tela
     function renderApp() {
       let income = 0;
       let expense = 0;
@@ -387,7 +379,7 @@
       transactionsList.innerHTML = "";
 
       if (localTransactions.length === 0) {
-        transactionsList.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400">Nenhuma transação cadastrada.</td></tr>`;
+        transactionsList.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400">Nenhuma transação encontrada.</td></tr>`;
       }
 
       localTransactions.forEach((tx) => {
