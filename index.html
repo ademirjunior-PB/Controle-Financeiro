@@ -17,6 +17,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 
     <script>
         if (localStorage.getItem('finflow_theme') === 'dark' || (!('finflow_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -104,7 +107,22 @@
                 <h2 class="text-xl font-bold text-gray-900 dark:text-white">Bem-vindo ao AJ-MyFinance!</h2>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Configure o seu perfil para começar a organizar suas finanças.</p>
             </div>
-            <form onsubmit="saveUserProfile(event)" class="space-y-4 text-left">
+            <div id="authLoginArea" class="space-y-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Entre com sua conta Google para acessar seus dados financeiros com segurança.</p>
+                <button type="button" onclick="signInWithGoogle()" class="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white font-bold rounded-xl text-xs shadow-md active:scale-98 transition-transform flex items-center justify-center gap-3">
+                    <i class="fab fa-google text-red-500"></i> Continuar com Google
+                </button>
+                <p id="authStatus" class="text-[10px] text-center text-gray-400"></p>
+            </div>
+
+            <form id="profileSetupForm" onsubmit="saveUserProfile(event)" class="space-y-4 text-left hidden">
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
+                    <img id="setupGooglePhoto" src="" alt="Foto do perfil" class="w-10 h-10 rounded-full object-cover hidden">
+                    <div class="min-w-0">
+                        <p id="setupGoogleName" class="text-xs font-bold truncate"></p>
+                        <p id="setupGoogleEmail" class="text-[10px] text-gray-500 dark:text-gray-400 truncate"></p>
+                    </div>
+                </div>
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Seu Nome / Como quer ser chamado</label>
                     <input type="text" id="setupUserName" required placeholder="Ex: João Silva" class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
@@ -114,6 +132,7 @@
                     <input type="text" id="setupUserSubtext" value="A sua liberdade financeira começa hoje." class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
                 </div>
                 <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-lg active:scale-98 transition-transform">Entrar no Sistema</button>
+                <button type="button" onclick="signOutUser()" class="w-full py-2.5 text-xs font-bold text-gray-500 hover:text-rose-600">Usar outra conta Google</button>
             </form>
         </div>
     </div>
@@ -122,8 +141,9 @@
     <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 pt-safe">
         <div class="px-4 py-3 flex justify-between items-center max-w-lg mx-auto">
             <div class="flex items-center space-x-3 cursor-pointer" onclick="openProfileModal()">
-                <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md font-bold text-sm" id="userAvatar">
-                    U
+                <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md font-bold text-sm overflow-hidden" id="userAvatar">
+                    <img id="userAvatarImage" src="" alt="Foto do usuário" class="w-full h-full object-cover hidden">
+                    <span id="userAvatarInitial">U</span>
                 </div>
                 <div>
                     <h1 class="text-sm font-bold leading-tight" id="headerGreeting">Olá, Usuário!</h1>
@@ -305,6 +325,19 @@
             <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Alterações</button>
         </form>
 
+        <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
+            <div class="flex items-center gap-3">
+                <img id="profileGooglePhoto" src="" alt="Foto do Google" class="w-10 h-10 rounded-full object-cover hidden">
+                <div class="min-w-0 flex-1">
+                    <p id="profileGoogleName" class="text-xs font-bold truncate"></p>
+                    <p id="profileGoogleEmail" class="text-[10px] text-gray-500 dark:text-gray-400 truncate"></p>
+                </div>
+            </div>
+            <button type="button" onclick="signOutUser()" class="w-full mt-3 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                <i class="fas fa-right-from-bracket"></i> Sair / Trocar conta Google
+            </button>
+        </div>
+
         <hr class="my-5 border-gray-200 dark:border-gray-700">
 
         <!-- SEÇÃO DE BACKUP DE DADOS -->
@@ -479,7 +512,58 @@
         const DEFAULT_SUBTEXT = "A sua liberdade financeira começa hoje.";
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
+        const firebaseConfig = {
+            apiKey: "AIzaSyCykfYieUDo_LU5t16yj8JTt-Fsiidb9J4",
+            authDomain: "aj-connectpb.firebaseapp.com",
+            projectId: "aj-connectpb",
+            storageBucket: "aj-connectpb.firebasestorage.app",
+            messagingSenderId: "280670991097",
+            appId: "1:280670991097:web:14a71c57219a1b7814e828"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
+        googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+        let firebaseUser = null;
+        let userProfile = null;
         let currentDate = new Date();
+
+        const DEFAULT_TRANSACTIONS = [
+            { id: '1', type: 'income', desc: 'Salário', amount: 4500, category: 'Salário', paymentMethod: 'Pix', date: new Date().toISOString().split('T')[0] },
+            { id: '2', type: 'expense', desc: 'Mercado', amount: 650, category: 'Alimentação', paymentMethod: 'Débito', date: new Date().toISOString().split('T')[0] }
+        ];
+        const DEFAULT_FIXED = [
+            { id: 'f1', desc: 'Aluguel', amount: 1200, category: 'Moradia', day: 10, paymentMethod: 'Pix' },
+            { id: 'f2', desc: 'Internet', amount: 100, category: 'Moradia', day: 15, paymentMethod: 'Pix' }
+        ];
+        const DEFAULT_CATEGORIES = [
+            { id: 'c1', name: 'Alimentação', color: '#f59e0b', limit: 1000 },
+            { id: 'c2', name: 'Moradia', color: '#3b82f6', limit: 1500 },
+            { id: 'c3', name: 'Transporte', color: '#8b5cf6', limit: 400 },
+            { id: 'c4', name: 'Lazer', color: '#ec4899', limit: 300 },
+            { id: 'c5', name: 'Salário', color: '#10b981', limit: 0 }
+        ];
+        const DEFAULT_GOALS = [
+            { id: 'g1', title: 'Reserva de Emergência', target: 10000, current: 3500, deadline: '2026-12-31' }
+        ];
+
+        let state = {
+            transactions: [],
+            fixedExpenses: [],
+            categories: [],
+            goals: [],
+            currentTxType: 'expense',
+            chart: null,
+            annualChart: null
+        };
+
+        function getStorageKey(key) {
+            // O tema continua global; dados financeiros e perfil ficam separados por UID.
+            if (key === 'finflow_theme') return key;
+            return firebaseUser ? `${key}_${firebaseUser.uid}` : `finflow_guest_${key}`;
+        }
 
         function setCookie(name, value, days = 365) {
             const expires = new Date(Date.now() + days * 864e5).toUTCString();
@@ -489,69 +573,176 @@
         function getCookie(name) {
             return document.cookie.split('; ').reduce((r, v) => {
                 const parts = v.split('=');
-                return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+                return parts[0] === name ? decodeURIComponent(parts.slice(1).join('=')) : r;
             }, '');
         }
 
         function getStoredData(key) {
-            const local = localStorage.getItem(key);
-            if (local) return local;
-            return getCookie(key) || null;
+            const storageKey = getStorageKey(key);
+            const local = localStorage.getItem(storageKey);
+            if (local !== null) return local;
+            return getCookie(storageKey) || null;
         }
 
         function saveStoredData(key, value) {
-            localStorage.setItem(key, value);
-            setCookie(key, value);
+            const storageKey = getStorageKey(key);
+            localStorage.setItem(storageKey, value);
+            setCookie(storageKey, value);
         }
 
-        let userProfile = JSON.parse(getStoredData('finflow_user')) || null;
+        function hasUserData() {
+            return !!(firebaseUser && localStorage.getItem(getStorageKey('finflow_user')));
+        }
 
-        let state = {
-            transactions: JSON.parse(getStoredData('finflow_txs')) || [
-                { id: '1', type: 'income', desc: 'Salário', amount: 4500, category: 'Salário', paymentMethod: 'Pix', date: new Date().toISOString().split('T')[0] },
-                { id: '2', type: 'expense', desc: 'Mercado', amount: 650, category: 'Alimentação', paymentMethod: 'Débito', date: new Date().toISOString().split('T')[0] }
-            ],
-            fixedExpenses: JSON.parse(getStoredData('finflow_fixed')) || [
-                { id: 'f1', desc: 'Aluguel', amount: 1200, category: 'Moradia', day: 10, paymentMethod: 'Pix' },
-                { id: 'f2', desc: 'Internet', amount: 100, category: 'Moradia', day: 15, paymentMethod: 'Pix' }
-            ],
-            categories: JSON.parse(getStoredData('finflow_cats')) || [
-                { id: 'c1', name: 'Alimentação', color: '#f59e0b', limit: 1000 },
-                { id: 'c2', name: 'Moradia', color: '#3b82f6', limit: 1500 },
-                { id: 'c3', name: 'Transporte', color: '#8b5cf6', limit: 400 },
-                { id: 'c4', name: 'Lazer', color: '#ec4899', limit: 300 },
-                { id: 'c5', name: 'Salário', color: '#10b981', limit: 0 }
-            ],
-            goals: JSON.parse(getStoredData('finflow_goals')) || [
-                { id: 'g1', title: 'Reserva de Emergência', target: 10000, current: 3500, deadline: '2026-12-31' }
-            ],
-            currentTxType: 'expense',
-            chart: null,
-            annualChart: null
-        };
+        function loadUserData() {
+            if (!firebaseUser) return;
+
+            const readJson = (key, fallback) => {
+                try {
+                    const value = getStoredData(key);
+                    return value ? JSON.parse(value) : fallback;
+                } catch (_) {
+                    return fallback;
+                }
+            };
+
+            // Migra os dados antigos apenas uma vez para a primeira conta Google utilizada neste navegador.
+            const migrationKey = 'finflow_legacy_migration_done';
+            if (!localStorage.getItem(migrationKey) && !localStorage.getItem(getStorageKey('finflow_user'))) {
+                const legacyProfile = localStorage.getItem('finflow_user');
+                const legacyTxs = localStorage.getItem('finflow_txs');
+                const legacyFixed = localStorage.getItem('finflow_fixed');
+                const legacyCats = localStorage.getItem('finflow_cats');
+                const legacyGoals = localStorage.getItem('finflow_goals');
+
+                if (legacyProfile || legacyTxs || legacyFixed || legacyCats || legacyGoals) {
+                    if (legacyProfile) saveStoredData('finflow_user', legacyProfile);
+                    if (legacyTxs) saveStoredData('finflow_txs', legacyTxs);
+                    if (legacyFixed) saveStoredData('finflow_fixed', legacyFixed);
+                    if (legacyCats) saveStoredData('finflow_cats', legacyCats);
+                    if (legacyGoals) saveStoredData('finflow_goals', legacyGoals);
+                    if (localStorage.getItem('finflow_setup_completed')) saveStoredData('finflow_setup_completed', 'true');
+                }
+                localStorage.setItem(migrationKey, 'true');
+            }
+
+            userProfile = readJson('finflow_user', null);
+            state.transactions = readJson('finflow_txs', DEFAULT_TRANSACTIONS.map(item => ({ ...item })));
+            state.fixedExpenses = readJson('finflow_fixed', DEFAULT_FIXED.map(item => ({ ...item })));
+            state.categories = readJson('finflow_cats', DEFAULT_CATEGORIES.map(item => ({ ...item })));
+            state.goals = readJson('finflow_goals', DEFAULT_GOALS.map(item => ({ ...item })));
+        }
+
+        function syncFirebaseProfile() {
+            if (!firebaseUser) return;
+            const googleName = firebaseUser.displayName || 'Usuário';
+            const existing = userProfile || {};
+            userProfile = {
+                uid: firebaseUser.uid,
+                name: existing.name || googleName,
+                subtext: existing.subtext || DEFAULT_SUBTEXT,
+                email: firebaseUser.email || existing.email || '',
+                photoURL: firebaseUser.photoURL || existing.photoURL || ''
+            };
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             initDarkModeUI();
-            checkUserSetup();
             initChart();
-            renderAll();
-            document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+            auth.onAuthStateChanged(handleAuthStateChanged);
+            auth.getRedirectResult().catch(err => {
+                console.warn('Resultado do login Google:', err);
+            });
         });
+
+        async function handleAuthStateChanged(user) {
+            firebaseUser = user;
+
+            if (!user) {
+                userProfile = null;
+                document.getElementById('welcomeScreen').classList.remove('hidden');
+                document.getElementById('authLoginArea').classList.remove('hidden');
+                document.getElementById('profileSetupForm').classList.add('hidden');
+                document.getElementById('authStatus').innerText = '';
+                return;
+            }
+
+            loadUserData();
+            syncFirebaseProfile();
+            saveStoredData('finflow_user', JSON.stringify(userProfile));
+
+            if (!hasUserData() || !getStoredData('finflow_setup_completed')) {
+                showProfileSetup();
+            } else {
+                document.getElementById('welcomeScreen').classList.add('hidden');
+                updateHeaderProfile();
+            }
+
+            renderAll();
+            const txDate = document.getElementById('txDate');
+            if (txDate) txDate.value = new Date().toISOString().split('T')[0];
+        }
+
+        function showProfileSetup() {
+            const user = firebaseUser;
+            document.getElementById('welcomeScreen').classList.remove('hidden');
+            document.getElementById('authLoginArea').classList.add('hidden');
+            document.getElementById('profileSetupForm').classList.remove('hidden');
+            document.getElementById('setupGoogleName').innerText = user.displayName || 'Conta Google';
+            document.getElementById('setupGoogleEmail').innerText = user.email || '';
+            document.getElementById('setupUserName').value = userProfile?.name || user.displayName || '';
+            document.getElementById('setupUserSubtext').value = userProfile?.subtext || DEFAULT_SUBTEXT;
+
+            const photo = document.getElementById('setupGooglePhoto');
+            if (user.photoURL) {
+                photo.src = user.photoURL;
+                photo.classList.remove('hidden');
+            } else {
+                photo.classList.add('hidden');
+            }
+        }
+
+        async function signInWithGoogle() {
+            const status = document.getElementById('authStatus');
+            status.innerText = 'Abrindo login Google...';
+            try {
+                await auth.signInWithPopup(googleProvider);
+            } catch (error) {
+                console.error(error);
+                if (['auth/popup-blocked', 'auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(error.code)) {
+                    status.innerText = 'Abrindo login Google em uma nova página...';
+                    try {
+                        await auth.signInWithRedirect(googleProvider);
+                    } catch (redirectError) {
+                        console.error(redirectError);
+                        status.innerText = 'Não foi possível iniciar o login Google.';
+                    }
+                } else {
+                    status.innerText = `Erro no login: ${error.message}`;
+                }
+            }
+        }
+
+        async function signOutUser() {
+            try {
+                closeAllModals();
+                await auth.signOut();
+            } catch (error) {
+                console.error(error);
+                alert('Não foi possível sair da conta. Tente novamente.');
+            }
+        }
 
         // --- ATUALIZAÇÃO FORÇADA DE CACHE DO APP ---
         function forceAppUpdate() {
             if (confirm("Deseja buscar a versão mais recente do aplicativo? Seus dados continuarão salvos.")) {
                 if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.getRegistrations().then(registrations => {
-                        for (let registration of registrations) {
-                            registration.unregister();
-                        }
+                        for (let registration of registrations) registration.unregister();
                     });
                 }
                 if ('caches' in window) {
-                    caches.keys().then(names => {
-                        for (let name of names) caches.delete(name);
-                    });
+                    caches.keys().then(names => names.forEach(name => caches.delete(name)));
                 }
                 window.location.reload(true);
             }
@@ -571,7 +762,6 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
             const downloadAnchor = document.createElement('a');
             const fileName = `AJ-MyFinance_Backup_${new Date().toISOString().split('T')[0]}.json`;
-
             downloadAnchor.setAttribute("href", dataStr);
             downloadAnchor.setAttribute("download", fileName);
             document.body.appendChild(downloadAnchor);
@@ -587,9 +777,14 @@
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-
                     if (importedData.transactions && importedData.categories) {
-                        userProfile = importedData.userProfile || userProfile;
+                        userProfile = {
+                            ...userProfile,
+                            ...(importedData.userProfile || {}),
+                            uid: firebaseUser?.uid || userProfile?.uid,
+                            email: firebaseUser?.email || userProfile?.email,
+                            photoURL: firebaseUser?.photoURL || userProfile?.photoURL || ''
+                        };
                         state.transactions = importedData.transactions || [];
                         state.fixedExpenses = importedData.fixedExpenses || [];
                         state.categories = importedData.categories || [];
@@ -598,6 +793,7 @@
                         saveStoredData('finflow_user', JSON.stringify(userProfile));
                         saveStoredData('finflow_setup_completed', 'true');
                         saveData();
+                        updateHeaderProfile();
 
                         alert('Backup restaurado com sucesso!');
                         closeAllModals();
@@ -606,16 +802,18 @@
                     }
                 } catch (err) {
                     alert('Erro ao carregar arquivo de backup.');
+                } finally {
+                    event.target.value = '';
                 }
             };
             reader.readAsText(file);
         }
 
         function checkUserSetup() {
-            const isConfigured = getStoredData('finflow_setup_completed');
-            
-            if (!userProfile || isConfigured !== 'true') {
-                document.getElementById('welcomeScreen').classList.remove('hidden');
+            if (!firebaseUser) return;
+            loadUserData();
+            if (!userProfile || getStoredData('finflow_setup_completed') !== 'true') {
+                showProfileSetup();
             } else {
                 document.getElementById('welcomeScreen').classList.add('hidden');
                 updateHeaderProfile();
@@ -626,30 +824,58 @@
             e.preventDefault();
             const name = document.getElementById('setupUserName').value.trim();
             const subtext = document.getElementById('setupUserSubtext').value.trim() || DEFAULT_SUBTEXT;
+            if (!name || !firebaseUser) return;
 
-            if (name) {
-                userProfile = { name, subtext };
-                saveStoredData('finflow_user', JSON.stringify(userProfile));
-                saveStoredData('finflow_setup_completed', 'true');
-                
-                document.getElementById('welcomeScreen').classList.add('hidden');
-                updateHeaderProfile();
-            }
+            userProfile = {
+                uid: firebaseUser.uid,
+                name,
+                subtext,
+                email: firebaseUser.email || '',
+                photoURL: firebaseUser.photoURL || ''
+            };
+            saveStoredData('finflow_user', JSON.stringify(userProfile));
+            saveStoredData('finflow_setup_completed', 'true');
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            updateHeaderProfile();
         }
 
         function updateHeaderProfile() {
-            if (userProfile) {
-                document.getElementById('headerGreeting').innerText = `Olá, ${userProfile.name}!`;
-                document.getElementById('headerSubtext').innerText = userProfile.subtext || DEFAULT_SUBTEXT;
-                document.getElementById('userAvatar').innerText = userProfile.name.charAt(0).toUpperCase();
+            if (!userProfile || !firebaseUser) return;
+            document.getElementById('headerGreeting').innerText = `Olá, ${userProfile.name}!`;
+            document.getElementById('headerSubtext').innerText = userProfile.subtext || DEFAULT_SUBTEXT;
+
+            const image = document.getElementById('userAvatarImage');
+            const initial = document.getElementById('userAvatarInitial');
+            if (userProfile.photoURL) {
+                image.src = userProfile.photoURL;
+                image.classList.remove('hidden');
+                initial.classList.add('hidden');
+            } else {
+                image.classList.add('hidden');
+                initial.classList.remove('hidden');
+                initial.innerText = (userProfile.name || 'U').charAt(0).toUpperCase();
+            }
+
+            const profilePhoto = document.getElementById('profileGooglePhoto');
+            const profileName = document.getElementById('profileGoogleName');
+            const profileEmail = document.getElementById('profileGoogleEmail');
+            profileName.innerText = firebaseUser.displayName || userProfile.name || 'Conta Google';
+            profileEmail.innerText = firebaseUser.email || '';
+            if (userProfile.photoURL) {
+                profilePhoto.src = userProfile.photoURL;
+                profilePhoto.classList.remove('hidden');
+            } else {
+                profilePhoto.classList.add('hidden');
             }
         }
 
         function openProfileModal() {
+            if (!firebaseUser) return;
             if (userProfile) {
-                document.getElementById('editUserName').value = userProfile.name;
+                document.getElementById('editUserName').value = userProfile.name || firebaseUser.displayName || '';
                 document.getElementById('editUserSubtext').value = userProfile.subtext || DEFAULT_SUBTEXT;
             }
+            updateHeaderProfile();
             openModal('profileModal');
         }
 
@@ -657,16 +883,24 @@
             e.preventDefault();
             const name = document.getElementById('editUserName').value.trim();
             const subtext = document.getElementById('editUserSubtext').value.trim() || DEFAULT_SUBTEXT;
+            if (!name || !firebaseUser) return;
 
-            if (name) {
-                userProfile = { name, subtext };
-                saveStoredData('finflow_user', JSON.stringify(userProfile));
-                updateHeaderProfile();
-                closeAllModals();
-            }
+            userProfile = {
+                ...userProfile,
+                uid: firebaseUser.uid,
+                name,
+                subtext,
+                email: firebaseUser.email || '',
+                photoURL: firebaseUser.photoURL || userProfile?.photoURL || ''
+            };
+            saveStoredData('finflow_user', JSON.stringify(userProfile));
+            saveStoredData('finflow_setup_completed', 'true');
+            updateHeaderProfile();
+            closeAllModals();
         }
 
         function saveData() {
+            if (!firebaseUser) return;
             saveStoredData('finflow_txs', JSON.stringify(state.transactions));
             saveStoredData('finflow_fixed', JSON.stringify(state.fixedExpenses));
             saveStoredData('finflow_cats', JSON.stringify(state.categories));
