@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AJ-MyFinance - Controle Financeiro Mobile</title>
+
+    <!-- PWA Web App Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#4f46e5">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+
+    <script>
+        if (localStorage.getItem('finflow_theme') === 'dark' || (!('finflow_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .pb-safe {
+            padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .pt-safe {
+            padding-top: max(1rem, env(safe-area-inset-top, 0px));
+        }
+
+        .bottom-sheet {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateY(100%);
+        }
+
+        .bottom-sheet.active {
+            transform: translateY(0);
+        }
+
+        .backdrop {
+            transition: opacity 0.3s ease-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- TELA DE SETUP / BOAS-VINDAS -->
+    <div id="welcomeScreen" class="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col justify-center items-center px-6 hidden">
+        <div class="w-full max-w-sm space-y-6 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-brand-600 text-white flex items-center justify-center text-2xl mx-auto shadow-lg shadow-brand-500/30">
+                <i class="fas fa-wallet"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Bem-vindo ao AJ-MyFinance!</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Configure o seu perfil para começar a organizar suas finanças.</p>
+            </div>
+            <div id="authLoginArea" class="space-y-4 text-left">
+                <div class="bg-gray-50 dark:bg-gray-800/70 rounded-2xl p-1 flex gap-1 border border-gray-100 dark:border-gray-700">
+                    <button type="button" id="authTabLogin" onclick="showAuthMode('login')" class="flex-1 py-2 rounded-xl bg-white dark:bg-gray-700 shadow-sm text-[11px] font-bold text-brand-600 dark:text-brand-400">Entrar</button>
+                    <button type="button" id="authTabRegister" onclick="showAuthMode('register')" class="flex-1 py-2 rounded-xl text-[11px] font-bold text-gray-500 dark:text-gray-400">Criar conta</button>
+                </div>
+
+                <div id="emailAuthPanel" class="space-y-3">
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-500 uppercase">E-mail</label>
+                        <div class="relative mt-1">
+                            <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                            <input type="email" id="authEmail" autocomplete="email" placeholder="seu@email.com" class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-9 pr-3 py-3 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-500 uppercase">Senha</label>
+                        <div class="relative mt-1">
+                            <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                            <input type="password" id="authPassword" autocomplete="current-password" placeholder="Sua senha" class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-9 pr-10 py-3 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none">
+                            <button type="button" onclick="toggleAuthPassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i id="authPasswordIcon" class="fas fa-eye text-xs"></i></button>
+                        </div>
+                    </div>
+                    <button type="button" id="emailAuthButton" onclick="submitEmailAuth()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-lg active:scale-98 transition-transform">Entrar</button>
+                    <button type="button" id="forgotPasswordButton" onclick="resetPassword()" class="w-full py-1 text-[10px] font-bold text-brand-600 dark:text-brand-400">Esqueci minha senha</button>
+                </div>
+
+                <div class="flex items-center gap-3 text-[9px] text-gray-400"><span class="h-px bg-gray-200 dark:bg-gray-700 flex-1"></span><span>OU</span><span class="h-px bg-gray-200 dark:bg-gray-700 flex-1"></span></div>
+
+                <button type="button" id="googleAuthButton" onclick="signInWithGoogle()" class="w-full py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white font-bold rounded-xl text-xs shadow-sm active:scale-98 transition-transform flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-wait">
+                    <span class="w-5 h-5 rounded-full flex items-center justify-center bg-white">
+                        <i class="fab fa-google text-red-500"></i>
+                    </span>
+                    <span>Continuar com Google</span>
+                </button>
+                <p class="text-[9px] text-center text-gray-400 dark:text-gray-500 -mt-1">No celular, você poderá escolher uma das contas Google já conectadas.</p>
+                <p id="authStatus" class="text-[10px] text-center text-gray-500 dark:text-gray-400 min-h-[16px]"></p>
+            </div>
+
+            <form id="profileSetupForm" onsubmit="saveUserProfile(event)" class="space-y-4 text-left hidden">
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
+                    <img id="setupGooglePhoto" src="" alt="Foto do perfil" class="w-10 h-10 rounded-full object-cover hidden">
+                    <div class="min-w-0">
+                        <p id="setupGoogleName" class="text-xs font-bold truncate"></p>
+                        <p id="setupGoogleEmail" class="text-[10px] text-gray-500 dark:text-gray-400 truncate"></p>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Seu Nome / Como quer ser chamado</label>
+                    <input type="text" id="setupUserName" required placeholder="Ex: João Silva" class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Frase Motivacional / Mensagem</label>
+                    <input type="text" id="setupUserSubtext" value="A sua liberdade financeira começa hoje." class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
+                </div>
+                <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-lg active:scale-98 transition-transform">Entrar no Sistema</button>
+                <button type="button" onclick="signOutUser()" class="w-full py-2.5 text-xs font-bold text-gray-500 hover:text-rose-600">Usar outra conta Google</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cabeçalho Fixo Mobile -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 pt-safe">
+        <div class="px-4 py-3 flex justify-between items-center max-w-lg mx-auto">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="openProfileModal()">
+                <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md font-bold text-sm overflow-hidden" id="userAvatar">
+                    <img id="userAvatarImage" src="" alt="Foto do usuário" class="w-full h-full object-cover hidden">
+                    <span id="userAvatarInitial">U</span>
+                </div>
+                <div>
+                    <h1 class="text-sm font-bold leading-tight" id="headerGreeting">Olá, Usuário!</h1>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[220px]" id="headerSubtext">A sua liberdade financeira começa hoje.</p>
+                </div>
+            </div>
+
+            <!-- BOTOES DO CABEÇALHO (ATUALIZAR, PERFIL, TEMA) -->
+            <div class="flex items-center space-x-2">
+                <button onclick="forceAppUpdate()" title="Buscar Atualizações" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
+                    <i class="fas fa-sync-alt text-xs"></i>
+                </button>
+                <button onclick="openProfileModal()" title="Perfil" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
+                    <i class="fas fa-user-cog text-xs"></i>
+                </button>
+                <button id="themeToggleBtn" onclick="toggleDarkMode()" title="Tema" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
+                    <i id="themeIcon" class="fas fa-moon text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-1 px-4 pt-4 max-w-lg mx-auto w-full pb-safe">
+
+        <!-- SELETOR DE MÊS -->
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between mb-4">
+            <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-95 transition-transform">
+                <i class="fas fa-chevron-left text-xs"></i>
+            </button>
+            <div class="text-center">
+                <span id="currentMonthLabel" class="text-xs font-bold uppercase tracking-wider block">Mês Atual</span>
+            </div>
+            <button onclick="changeMonth(1)" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-95 transition-transform">
+                <i class="fas fa-chevron-right text-xs"></i>
+            </button>
+        </div>
+        
+        <!-- ABA: DASHBOARD -->
+        <section id="tab-dashboard" class="tab-content space-y-4">
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                    <span class="text-[10px] text-gray-500 uppercase font-semibold block">Receitas</span>
+                    <span id="dashIncome" class="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">R$ 0,00</span>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                    <span class="text-[10px] text-gray-500 uppercase font-semibold block">Despesas</span>
+                    <span id="dashExpense" class="text-xs font-bold text-rose-600 dark:text-rose-400 mt-1 block">R$ 0,00</span>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                    <span class="text-[10px] text-gray-500 uppercase font-semibold block">Saldo</span>
+                    <span id="dashBalance" class="text-xs font-bold text-gray-900 dark:text-white mt-1 block">R$ 0,00</span>
+                </div>
+            </div>
+
+            <button onclick="openReportModal()" class="w-full py-2.5 bg-brand-50 dark:bg-gray-800 border border-brand-200 dark:border-gray-700 text-brand-600 dark:text-brand-400 text-xs font-bold rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-98 transition-transform">
+                <i class="fas fa-chart-line"></i>
+                Ver Relatório e Comparativo Anual
+            </button>
+
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">Distribuição do Mês</h3>
+                <div class="relative h-48 flex justify-center items-center">
+                    <canvas id="categoryChartMobile"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Recentes do Mês</h3>
+                    <button onclick="switchTab('transactions')" class="text-xs text-brand-600 dark:text-brand-400 font-semibold">Ver tudo</button>
+                </div>
+                <div id="dashRecentList" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- ABA: TRANSAÇÕES -->
+        <section id="tab-transactions" class="tab-content space-y-4 hidden">
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
+                <input type="text" id="txSearch" oninput="renderTransactions()" placeholder="Buscar transação..." class="w-full bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500 dark:text-white">
+                <div class="flex gap-2">
+                    <select id="txTypeFilter" onchange="renderTransactions()" class="flex-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-2 py-2 text-xs dark:text-white">
+                        <option value="all">Todos os tipos</option>
+                        <option value="income">Receitas</option>
+                        <option value="expense">Despesas</option>
+                    </select>
+                    <select id="txCatFilter" onchange="renderTransactions()" class="flex-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-2 py-2 text-xs dark:text-white">
+                        <option value="all">Todas categorias</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="fullTxList" class="space-y-2"></div>
+        </section>
+
+        <!-- ABA: DESPESAS FIXAS -->
+        <section id="tab-fixed" class="tab-content space-y-4 hidden">
+            <div class="flex justify-between items-center">
+                <h2 class="text-sm font-bold text-gray-700 dark:text-gray-300">Despesas Recorrentes / Fixas</h2>
+                <button onclick="openFixedModal()" class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-xl font-medium shadow-sm active:scale-95 transition-transform">
+                    <i class="fas fa-plus text-[10px] mr-1"></i> Nova Fixa
+                </button>
+            </div>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400">Cadastre suas contas mensais. Clique em "Confirmar Pagamento" para debitar o valor no mês selecionado.</p>
+            <div id="fixedList" class="space-y-3"></div>
+        </section>
+
+        <!-- ABA: LIMITES -->
+        <section id="tab-budgets" class="tab-content space-y-4 hidden">
+            <div class="flex justify-between items-center">
+                <h2 class="text-sm font-bold text-gray-700 dark:text-gray-300">Controle de Gastos por Categoria</h2>
+                <button onclick="openCategoryModal()" class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-xl font-medium shadow-sm active:scale-95 transition-transform">
+                    <i class="fas fa-plus text-[10px] mr-1"></i> Nova Categoria
+                </button>
+            </div>
+            <div id="budgetList" class="space-y-3"></div>
+        </section>
+
+        <!-- ABA: METAS -->
+        <section id="tab-goals" class="tab-content space-y-4 hidden">
+            <div class="flex justify-between items-center">
+                <h2 class="text-sm font-bold text-gray-700 dark:text-gray-300">Minhas Metas</h2>
+                <button onclick="openGoalModal()" class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-xl font-medium shadow-sm active:scale-95 transition-transform">
+                    <i class="fas fa-plus text-[10px] mr-1"></i> Nova Meta
+                </button>
+            </div>
+            <div id="goalsList" class="space-y-3"></div>
+        </section>
+
+    </main>
+
+    <!-- FAB -->
+    <button onclick="openTxModal()" class="fixed right-5 bottom-20 z-30 w-14 h-14 bg-brand-600 text-white rounded-full shadow-lg flex items-center justify-center text-xl active:scale-90 transition-transform">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Bottom Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-30 px-1 py-2">
+        <div class="max-w-lg mx-auto flex justify-between items-center text-center">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item flex-1 flex flex-col items-center py-1 text-brand-600 dark:text-brand-400">
+                <i class="fas fa-chart-pie text-base"></i>
+                <span class="text-[9px] font-medium mt-1">Início</span>
+            </button>
+            <button onclick="switchTab('transactions')" id="nav-transactions" class="nav-item flex-1 flex flex-col items-center py-1 text-gray-400">
+                <i class="fas fa-list-ul text-base"></i>
+                <span class="text-[9px] font-medium mt-1">Extrato</span>
+            </button>
+            <button onclick="switchTab('fixed')" id="nav-fixed" class="nav-item flex-1 flex flex-col items-center py-1 text-gray-400">
+                <i class="fas fa-calendar-check text-base"></i>
+                <span class="text-[9px] font-medium mt-1">Fixas</span>
+            </button>
+            <button onclick="switchTab('budgets')" id="nav-budgets" class="nav-item flex-1 flex flex-col items-center py-1 text-gray-400">
+                <i class="fas fa-sliders-h text-base"></i>
+                <span class="text-[9px] font-medium mt-1">Limites</span>
+            </button>
+            <button onclick="switchTab('goals')" id="nav-goals" class="nav-item flex-1 flex flex-col items-center py-1 text-gray-400">
+                <i class="fas fa-bullseye text-base"></i>
+                <span class="text-[9px] font-medium mt-1">Metas</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Backdrop -->
+    <div id="backdrop" onclick="closeAllModals()" class="backdrop fixed inset-0 bg-black/50 z-40"></div>
+
+    <!-- MODAL: Perfil + Backup -->
+    <div id="profileModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
+        <h3 class="text-base font-bold mb-4">Perfil do Usuário</h3>
+        <form onsubmit="updateUserProfile(event)" class="space-y-3">
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Seu Nome</label>
+                <input type="text" id="editUserName" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Frase Motivacional</label>
+                <input type="text" id="editUserSubtext" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+            </div>
+            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Alterações</button>
+        </form>
+
+        <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
+            <div class="flex items-center gap-3">
+                <img id="profileGooglePhoto" src="" alt="Foto do Google" class="w-10 h-10 rounded-full object-cover hidden">
+                <div class="min-w-0 flex-1">
+                    <p id="profileGoogleName" class="text-xs font-bold truncate"></p>
+                    <p id="profileGoogleEmail" class="text-[10px] text-gray-500 dark:text-gray-400 truncate"></p>
+                </div>
+            </div>
+            <button type="button" onclick="signOutUser()" class="w-full mt-3 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                <i class="fas fa-right-from-bracket"></i> Sair / Trocar conta Google
+            </button>
+        </div>
+
+        <hr class="my-5 border-gray-200 dark:border-gray-700">
+
+        <!-- SEÇÃO DE BACKUP DE DADOS -->
+        <div class="space-y-3">
+            <h4 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Segurança & Dados (Backup)</h4>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400">Faça o download dos seus dados para não perder registros ou restaure um backup salvo.</p>
+            
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button onclick="exportBackupData()" class="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                    <i class="fas fa-file-export"></i> Exportar Backup
+                </button>
+                <button onclick="document.getElementById('importFile').click()" class="py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                    <i class="fas fa-file-import"></i> Importar Backup
+                </button>
+                <input type="file" id="importFile" accept=".json" class="hidden" onchange="importBackupData(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Nova Transação -->
+    <div id="txModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
+        <h3 id="txModalTitle" class="text-base font-bold mb-4">Nova Transação</h3>
+        <form id="txForm" onsubmit="saveTransaction(event)" class="space-y-3">
+            <input type="hidden" id="txId">
+            <div class="flex rounded-xl bg-gray-100 dark:bg-gray-700 p-1">
+                <button type="button" id="typeExpenseBtn" onclick="setTxType('expense')" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-600 shadow-sm text-rose-600">Despesa</button>
+                <button type="button" id="typeIncomeBtn" onclick="setTxType('income')" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500">Receita</button>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Descrição</label>
+                <input type="text" id="txDesc" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Valor (R$)</label>
+                    <input type="number" step="0.01" id="txAmount" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Pagamento</label>
+                    <select id="txPaymentMethod" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                        <option value="Pix">Pix</option>
+                        <option value="Crédito">Cartão de Crédito</option>
+                        <option value="Débito">Cartão de Débito</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="Transferência">Transferência</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Categoria</label>
+                <select id="txCategory" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white"></select>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Data</label>
+                <input type="date" id="txDate" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+            </div>
+            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Transação</button>
+        </form>
+    </div>
+
+    <!-- MODAL: Despesa Fixa -->
+    <div id="fixedModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
+        <h3 id="fixedModalTitle" class="text-base font-bold mb-4">Nova Despesa Fixa</h3>
+        <form id="fixedForm" onsubmit="saveFixed(event)" class="space-y-3">
+            <input type="hidden" id="fixedId">
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Conta / Despesa</label>
+                <input type="text" id="fixedDesc" required placeholder="Ex: Aluguel, Internet" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Valor (R$)</label>
+                    <input type="number" step="0.01" id="fixedAmount" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Dia Vencimento</label>
+                    <input type="number" min="1" max="31" id="fixedDay" required placeholder="Ex: 10" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Categoria</label>
+                    <select id="fixedCategory" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white"></select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Forma Pagamento</label>
+                    <select id="fixedPaymentMethod" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                        <option value="Pix">Pix</option>
+                        <option value="Crédito">Cartão de Crédito</option>
+                        <option value="Débito">Cartão de Débito</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="Transferência">Transferência</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Cadastrar Despesa Fixa</button>
+        </form>
+    </div>
+
+    <!-- MODAL: Relatório -->
+    <div id="reportModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
+        <h3 class="text-base font-bold mb-3">Relatório Comparativo Anual</h3>
+        
+        <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-2xl mb-4">
+            <h4 class="text-xs font-bold mb-2">Evolução de Receitas vs Despesas</h4>
+            <div class="relative h-56">
+                <canvas id="annualComparisonChart"></canvas>
+            </div>
+        </div>
+
+        <div id="annualReportList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+    </div>
+
+    <!-- MODAL: Categoria -->
+    <div id="categoryModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
+        <h3 id="categoryModalTitle" class="text-base font-bold mb-4">Categoria e Limite</h3>
+        
+        <form id="categoryForm" onsubmit="saveCategory(event)" class="space-y-3">
+            <input type="hidden" id="catId">
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Categoria</label>
+                <input type="text" id="catName" placeholder="Ex: Alimentação" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Cor do Gráfico</label>
+                    <input type="color" id="catColor" value="#6366f1" class="w-full h-9 mt-1 p-1 rounded-xl bg-gray-50 dark:bg-gray-700 border-none cursor-pointer">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Limite Mensal (R$)</label>
+                    <input type="number" step="0.01" id="catLimit" placeholder="0 para sem limite" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                </div>
+            </div>
+            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Categoria</button>
+        </form>
+    </div>
+
+    <!-- MODAL: Meta -->
+    <div id="goalModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
+        <h3 id="goalModalTitle" class="text-base font-bold mb-4">Nova Meta</h3>
+        <form id="goalForm" onsubmit="saveGoal(event)" class="space-y-3">
+            <input type="hidden" id="goalId">
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Meta</label>
+                <input type="text" id="goalTitle" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Meta Total (R$)</label>
+                    <input type="number" step="0.01" id="goalTarget" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Valor Atual (R$)</label>
+                    <input type="number" step="0.01" id="goalCurrent" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                </div>
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Data Limite</label>
+                <input type="date" id="goalDeadline" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+            </div>
+            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Meta</button>
+        </form>
+    </div>
+
+    <!-- LÓGICA DO SISTEMA -->
+    <script>
+        const DEFAULT_SUBTEXT = "A sua liberdade financeira começa hoje.";
+        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCykfYieUDo_LU5t16yj8JTt-Fsiidb9J4",
+            authDomain: "aj-connectpb.firebaseapp.com",
+            projectId: "aj-connectpb",
+            storageBucket: "aj-connectpb.firebasestorage.app",
+            messagingSenderId: "280670991097",
+            appId: "1:280670991097:web:14a71c57219a1b7814e828"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        // Mantém a sessão no navegador e permite trocar de conta pelo seletor do Google.
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.warn);
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
+        googleProvider.addScope('profile');
+        googleProvider.addScope('email');
+        googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+        let firebaseUser = null;
+        let userProfile = null;
+        let currentDate = new Date();
+
+        const DEFAULT_TRANSACTIONS = [
+            { id: '1', type: 'income', desc: 'Salário', amount: 4500, category: 'Salário', paymentMethod: 'Pix', date: new Date().toISOString().split('T')[0] },
+            { id: '2', type: 'expense', desc: 'Mercado', amount: 650, category: 'Alimentação', paymentMethod: 'Débito', date: new Date().toISOString().split('T')[0] }
+        ];
+        const DEFAULT_FIXED = [
+            { id: 'f1', desc: 'Aluguel', amount: 1200, category: 'Moradia', day: 10, paymentMethod: 'Pix' },
+            { id: 'f2', desc: 'Internet', amount: 100, category: 'Moradia', day: 15, paymentMethod: 'Pix' }
+        ];
+        const DEFAULT_CATEGORIES = [
+            { id: 'c1', name: 'Alimentação', color: '#f59e0b', limit: 1000 },
+            { id: 'c2', name: 'Moradia', color: '#3b82f6', limit: 1500 },
+            { id: 'c3', name: 'Transporte', color: '#8b5cf6', limit: 400 },
+            { id: 'c4', name: 'Lazer', color: '#ec4899', limit: 300 },
+            { id: 'c5', name: 'Salário', color: '#10b981', limit: 0 }
+        ];
+        const DEFAULT_GOALS = [
+            { id: 'g1', title: 'Reserva de Emergência', target: 10000, current: 3500, deadline: '2026-12-31' }
+        ];
+
+        let state = {
+            transactions: [],
+            fixedExpenses: [],
+            categories: [],
+            goals: [],
+            currentTxType: 'expense',
+            chart: null,
+            annualChart: null
+        };
+
+        function getStorageKey(key) {
+            // O tema continua global; dados financeiros e perfil ficam separados por UID.
+            if (key === 'finflow_theme') return key;
+            return firebaseUser ? `${key}_${firebaseUser.uid}` : `finflow_guest_${key}`;
+        }
+
+        function setCookie(name, value, days = 365) {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/; SameSite=Lax';
+        }
+
+        function getCookie(name) {
+            return document.cookie.split('; ').reduce((r, v) => {
+                const parts = v.split('=');
+                return parts[0] === name ? decodeURIComponent(parts.slice(1).join('=')) : r;
+            }, '');
+        }
+
+        function getStoredData(key) {
+            const storageKey = getStorageKey(key);
+            const local = localStorage.getItem(storageKey);
+            if (local !== null) return local;
+            return getCookie(storageKey) || null;
+        }
+
+        function saveStoredData(key, value) {
+            const storageKey = getStorageKey(key);
+            localStorage.setItem(storageKey, value);
+            setCookie(storageKey, value);
+        }
+
+        function hasUserData() {
+            return !!(firebaseUser && localStorage.getItem(getStorageKey('finflow_user')));
+        }
+
+        function loadUserData() {
+            if (!firebaseUser) return;
+
+            const readJson = (key, fallback) => {
+                try {
+                    const value = getStoredData(key);
+                    return value ? JSON.parse(value) : fallback;
+                } catch (_) {
+                    return fallback;
+                }
+            };
+
+            // Migra os dados antigos apenas uma vez para a primeira conta Google utilizada neste navegador.
+            const migrationKey = 'finflow_legacy_migration_done';
+            if (!localStorage.getItem(migrationKey) && !localStorage.getItem(getStorageKey('finflow_user'))) {
+                const legacyProfile = localStorage.getItem('finflow_user');
+                const legacyTxs = localStorage.getItem('finflow_txs');
+                const legacyFixed = localStorage.getItem('finflow_fixed');
+                const legacyCats = localStorage.getItem('finflow_cats');
+                const legacyGoals = localStorage.getItem('finflow_goals');
+
+                if (legacyProfile || legacyTxs || legacyFixed || legacyCats || legacyGoals) {
+                    if (legacyProfile) saveStoredData('finflow_user', legacyProfile);
+                    if (legacyTxs) saveStoredData('finflow_txs', legacyTxs);
+                    if (legacyFixed) saveStoredData('finflow_fixed', legacyFixed);
+                    if (legacyCats) saveStoredData('finflow_cats', legacyCats);
+                    if (legacyGoals) saveStoredData('finflow_goals', legacyGoals);
+                    if (localStorage.getItem('finflow_setup_completed')) saveStoredData('finflow_setup_completed', 'true');
+                }
+                localStorage.setItem(migrationKey, 'true');
+            }
+
+            userProfile = readJson('finflow_user', null);
+            state.transactions = readJson('finflow_txs', DEFAULT_TRANSACTIONS.map(item => ({ ...item })));
+            state.fixedExpenses = readJson('finflow_fixed', DEFAULT_FIXED.map(item => ({ ...item })));
+            state.categories = readJson('finflow_cats', DEFAULT_CATEGORIES.map(item => ({ ...item })));
+            state.goals = readJson('finflow_goals', DEFAULT_GOALS.map(item => ({ ...item })));
+        }
+
+        function syncFirebaseProfile() {
+            if (!firebaseUser) return;
+            const googleName = firebaseUser.displayName || 'Usuário';
+            const existing = userProfile || {};
+            userProfile = {
+                uid: firebaseUser.uid,
+                name: existing.name || googleName,
+                subtext: existing.subtext || DEFAULT_SUBTEXT,
+                email: firebaseUser.email || existing.email || '',
+                photoURL: firebaseUser.photoURL || existing.photoURL || ''
+            };
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initDarkModeUI();
+            initChart();
+
+            // Primeiro processa um eventual retorno do login Google por redirect.
+            try {
+                const result = await auth.getRedirectResult();
+                if (result && result.user) {
+                    console.log('Login Google concluído por redirect.');
+                }
+            } catch (err) {
+                console.error('Erro no retorno do Google:', err);
+                const status = document.getElementById('authStatus');
+                if (status) status.innerText = getFirebaseAuthError(err);
+            }
+
+            auth.onAuthStateChanged(handleAuthStateChanged);
+        });
+
+        async function handleAuthStateChanged(user) {
+            firebaseUser = user;
+
+            if (!user) {
+                userProfile = null;
+                document.getElementById('welcomeScreen').classList.remove('hidden');
+                document.getElementById('authLoginArea').classList.remove('hidden');
+                document.getElementById('profileSetupForm').classList.add('hidden');
+                document.getElementById('authStatus').innerText = '';
+                return;
+            }
+
+            loadUserData();
+            syncFirebaseProfile();
+            saveStoredData('finflow_user', JSON.stringify(userProfile));
+
+            if (!hasUserData() || !getStoredData('finflow_setup_completed')) {
+                showProfileSetup();
+            } else {
+                document.getElementById('welcomeScreen').classList.add('hidden');
+                updateHeaderProfile();
+            }
+
+            renderAll();
+            const txDate = document.getElementById('txDate');
+            if (txDate) txDate.value = new Date().toISOString().split('T')[0];
+        }
+
+        function showProfileSetup() {
+            const user = firebaseUser;
+            document.getElementById('welcomeScreen').classList.remove('hidden');
+            document.getElementById('authLoginArea').classList.add('hidden');
+            document.getElementById('profileSetupForm').classList.remove('hidden');
+            document.getElementById('setupGoogleName').innerText = user.displayName || 'Conta Google';
+            document.getElementById('setupGoogleEmail').innerText = user.email || '';
+            document.getElementById('setupUserName').value = userProfile?.name || user.displayName || '';
+            document.getElementById('setupUserSubtext').value = userProfile?.subtext || DEFAULT_SUBTEXT;
+
+            const photo = document.getElementById('setupGooglePhoto');
+            if (user.photoURL) {
+                photo.src = user.photoURL;
+                photo.classList.remove('hidden');
+            } else {
+                photo.classList.add('hidden');
+            }
+        }
+
+        let authMode = 'login';
+
+        function showAuthMode(mode) {
+            authMode = mode;
+            const loginTab = document.getElementById('authTabLogin');
+            const registerTab = document.getElementById('authTabRegister');
+            const button = document.getElementById('emailAuthButton');
+            const forgot = document.getElementById('forgotPasswordButton');
+            const password = document.getElementById('authPassword');
+
+            loginTab.className = mode === 'login'
+                ? 'flex-1 py-2 rounded-xl bg-white dark:bg-gray-700 shadow-sm text-[11px] font-bold text-brand-600 dark:text-brand-400'
+                : 'flex-1 py-2 rounded-xl text-[11px] font-bold text-gray-500 dark:text-gray-400';
+            registerTab.className = mode === 'register'
+                ? 'flex-1 py-2 rounded-xl bg-white dark:bg-gray-700 shadow-sm text-[11px] font-bold text-brand-600 dark:text-brand-400'
+                : 'flex-1 py-2 rounded-xl text-[11px] font-bold text-gray-500 dark:text-gray-400';
+
+            button.innerText = mode === 'login' ? 'Entrar' : 'Criar minha conta';
+            forgot.classList.toggle('hidden', mode !== 'login');
+            password.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+            document.getElementById('authStatus').innerText = '';
+        }
+
+        function toggleAuthPassword() {
+            const input = document.getElementById('authPassword');
+            const icon = document.getElementById('authPasswordIcon');
+            const visible = input.type === 'text';
+            input.type = visible ? 'password' : 'text';
+            icon.className = visible ? 'fas fa-eye text-xs' : 'fas fa-eye-slash text-xs';
+        }
+
+        function getAuthCredentials() {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            if (!email || !password) {
+                throw new Error('Informe seu e-mail e sua senha.');
+            }
+            return { email, password };
+        }
+
+        async function submitEmailAuth() {
+            const status = document.getElementById('authStatus');
+            const button = document.getElementById('emailAuthButton');
+            try {
+                const { email, password } = getAuthCredentials();
+                button.disabled = true;
+                button.classList.add('opacity-60');
+                status.innerText = authMode === 'login' ? 'Entrando...' : 'Criando sua conta...';
+
+                if (authMode === 'login') {
+                    await auth.signInWithEmailAndPassword(email, password);
+                } else {
+                    const credential = await auth.createUserWithEmailAndPassword(email, password);
+                    await credential.user.updateProfile({ displayName: email.split('@')[0] });
+                }
+            } catch (error) {
+                console.error(error);
+                const messages = {
+                    'auth/invalid-email': 'Informe um e-mail válido.',
+                    'auth/user-not-found': 'Não existe uma conta com este e-mail.',
+                    'auth/wrong-password': 'Senha incorreta.',
+                    'auth/invalid-credential': 'E-mail ou senha incorretos.',
+                    'auth/email-already-in-use': 'Este e-mail já possui uma conta.',
+                    'auth/weak-password': 'A senha deve ter pelo menos 6 caracteres.',
+                    'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
+                    'auth/network-request-failed': 'Falha de conexão. Verifique sua internet.'
+                };
+                status.innerText = messages[error.code] || error.message || 'Não foi possível concluir o acesso.';
+            } finally {
+                button.disabled = false;
+                button.classList.remove('opacity-60');
+            }
+        }
+
+        async function resetPassword() {
+            const status = document.getElementById('authStatus');
+            const email = document.getElementById('authEmail').value.trim();
+            if (!email) {
+                status.innerText = 'Digite seu e-mail para receber o link de redefinição.';
+                document.getElementById('authEmail').focus();
+                return;
+            }
+            try {
+                await auth.sendPasswordResetEmail(email);
+                status.innerText = 'Link de redefinição enviado para seu e-mail.';
+            } catch (error) {
+                console.error(error);
+                status.innerText = error.code === 'auth/user-not-found' ? 'Não existe uma conta com este e-mail.' : (error.message || 'Não foi possível enviar o e-mail.');
+            }
+        }
+
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+                || (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+        }
+
+        function getFirebaseAuthError(error) {
+            const messages = {
+                'auth/popup-blocked': 'O navegador bloqueou a janela do Google. Tente novamente.',
+                'auth/popup-closed-by-user': 'A janela de login foi fechada antes de concluir.',
+                'auth/cancelled-popup-request': 'O login anterior foi cancelado.',
+                'auth/account-exists-with-different-credential': 'Já existe uma conta com este e-mail usando outro método de login.',
+                'auth/unauthorized-domain': 'Este domínio ainda não está autorizado no Firebase Authentication.',
+                'auth/operation-not-allowed': 'O login com Google não está ativado no Firebase.',
+                'auth/network-request-failed': 'Falha de conexão. Verifique sua internet e tente novamente.'
+            };
+            return messages[error?.code] || `Não foi possível entrar com Google${error?.message ? ': ' + error.message : '.'}`;
+        }
+
+        async function signInWithGoogle() {
+            const status = document.getElementById('authStatus');
+            const button = document.getElementById('googleAuthButton');
+            if (button) button.disabled = true;
+            status.innerText = isMobileDevice()
+                ? 'Abrindo o Google para escolher sua conta...'
+                : 'Abrindo login Google...';
+
+            try {
+                // No celular, redirect é mais confiável e permite usar diretamente as contas
+                // Google já conectadas ao aparelho/navegador. No desktop, popup é mais rápido.
+                if (isMobileDevice()) {
+                    await auth.signInWithRedirect(googleProvider);
+                    return;
+                }
+
+                await auth.signInWithPopup(googleProvider);
+            } catch (error) {
+                console.error('Erro no login Google:', error);
+                status.innerText = getFirebaseAuthError(error);
+                if (button) button.disabled = false;
+            }
+        }
+
+        async function signOutUser() {
+            try {
+                closeAllModals();
+                await auth.signOut();
+            } catch (error) {
+                console.error(error);
+                alert('Não foi possível sair da conta. Tente novamente.');
+            }
+        }
+
+        // --- ATUALIZAÇÃO FORÇADA DE CACHE DO APP ---
+        function forceAppUpdate() {
+            if (confirm("Deseja buscar a versão mais recente do aplicativo? Seus dados continuarão salvos.")) {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        for (let registration of registrations) registration.unregister();
+                    });
+                }
+                if ('caches' in window) {
+                    caches.keys().then(names => names.forEach(name => caches.delete(name)));
+                }
+                window.location.reload(true);
+            }
+        }
+
+        // --- EXPORTAR E IMPORTAR BACKUP ---
+        function exportBackupData() {
+            const dataToExport = {
+                userProfile: userProfile,
+                transactions: state.transactions,
+                fixedExpenses: state.fixedExpenses,
+                categories: state.categories,
+                goals: state.goals,
+                exportDate: new Date().toISOString()
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+            const downloadAnchor = document.createElement('a');
+            const fileName = `AJ-MyFinance_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", fileName);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importBackupData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.transactions && importedData.categories) {
+                        userProfile = {
+                            ...userProfile,
+                            ...(importedData.userProfile || {}),
+                            uid: firebaseUser?.uid || userProfile?.uid,
+                            email: firebaseUser?.email || userProfile?.email,
+                            photoURL: firebaseUser?.photoURL || userProfile?.photoURL || ''
+                        };
+                        state.transactions = importedData.transactions || [];
+                        state.fixedExpenses = importedData.fixedExpenses || [];
+                        state.categories = importedData.categories || [];
+                        state.goals = importedData.goals || [];
+
+                        saveStoredData('finflow_user', JSON.stringify(userProfile));
+                        saveStoredData('finflow_setup_completed', 'true');
+                        saveData();
+                        updateHeaderProfile();
+
+                        alert('Backup restaurado com sucesso!');
+                        closeAllModals();
+                    } else {
+                        alert('Arquivo de backup inválido.');
+                    }
+                } catch (err) {
+                    alert('Erro ao carregar arquivo de backup.');
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function checkUserSetup() {
+            if (!firebaseUser) return;
+            loadUserData();
+            if (!userProfile || getStoredData('finflow_setup_completed') !== 'true') {
+                showProfileSetup();
+            } else {
+                document.getElementById('welcomeScreen').classList.add('hidden');
+                updateHeaderProfile();
+            }
+        }
+
+        function saveUserProfile(e) {
+            e.preventDefault();
+            const name = document.getElementById('setupUserName').value.trim();
+            const subtext = document.getElementById('setupUserSubtext').value.trim() || DEFAULT_SUBTEXT;
+            if (!name || !firebaseUser) return;
+
+            userProfile = {
+                uid: firebaseUser.uid,
+                name,
+                subtext,
+                email: firebaseUser.email || '',
+                photoURL: firebaseUser.photoURL || ''
+            };
+            saveStoredData('finflow_user', JSON.stringify(userProfile));
+            saveStoredData('finflow_setup_completed', 'true');
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            updateHeaderProfile();
+        }
+
+        function updateHeaderProfile() {
+            if (!userProfile || !firebaseUser) return;
+            document.getElementById('headerGreeting').innerText = `Olá, ${userProfile.name}!`;
+            document.getElementById('headerSubtext').innerText = userProfile.subtext || DEFAULT_SUBTEXT;
+
+            const image = document.getElementById('userAvatarImage');
+            const initial = document.getElementById('userAvatarInitial');
+            if (userProfile.photoURL) {
+                image.src = userProfile.photoURL;
+                image.classList.remove('hidden');
+                initial.classList.add('hidden');
+            } else {
+                image.classList.add('hidden');
+                initial.classList.remove('hidden');
+                initial.innerText = (userProfile.name || 'U').charAt(0).toUpperCase();
+            }
+
+            const profilePhoto = document.getElementById('profileGooglePhoto');
+            const profileName = document.getElementById('profileGoogleName');
+            const profileEmail = document.getElementById('profileGoogleEmail');
+            profileName.innerText = firebaseUser.displayName || userProfile.name || 'Conta Google';
+            profileEmail.innerText = firebaseUser.email || '';
+            if (userProfile.photoURL) {
+                profilePhoto.src = userProfile.photoURL;
+                profilePhoto.classList.remove('hidden');
+            } else {
+                profilePhoto.classList.add('hidden');
+            }
+        }
+
+        function openProfileModal() {
+            if (!firebaseUser) return;
+            if (userProfile) {
+                document.getElementById('editUserName').value = userProfile.name || firebaseUser.displayName || '';
+                document.getElementById('editUserSubtext').value = userProfile.subtext || DEFAULT_SUBTEXT;
+            }
+            updateHeaderProfile();
+            openModal('profileModal');
+        }
+
+        function updateUserProfile(e) {
+            e.preventDefault();
+            const name = document.getElementById('editUserName').value.trim();
+            const subtext = document.getElementById('editUserSubtext').value.trim() || DEFAULT_SUBTEXT;
+            if (!name || !firebaseUser) return;
+
+            userProfile = {
+                ...userProfile,
+                uid: firebaseUser.uid,
+                name,
+                subtext,
+                email: firebaseUser.email || '',
+                photoURL: firebaseUser.photoURL || userProfile?.photoURL || ''
+            };
+            saveStoredData('finflow_user', JSON.stringify(userProfile));
+            saveStoredData('finflow_setup_completed', 'true');
+            updateHeaderProfile();
+            closeAllModals();
+        }
+
+        function saveData() {
+            if (!firebaseUser) return;
+            saveStoredData('finflow_txs', JSON.stringify(state.transactions));
+            saveStoredData('finflow_fixed', JSON.stringify(state.fixedExpenses));
+            saveStoredData('finflow_cats', JSON.stringify(state.categories));
+            saveStoredData('finflow_goals', JSON.stringify(state.goals));
+            renderAll();
+        }
+
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            renderAll();
+        }
+
+        function renderAll() {
+            updateMonthLabel();
+            renderDashboard();
+            renderTransactions();
+            renderFixedExpenses();
+            renderBudgets();
+            renderGoals();
+            renderCategoryOptions();
+        }
+
+        function updateMonthLabel() {
+            const m = monthNames[currentDate.getMonth()];
+            const y = currentDate.getFullYear();
+            document.getElementById('currentMonthLabel').innerText = `${m} ${y}`;
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-item').forEach(el => el.className = 'nav-item flex-1 flex flex-col items-center py-1 text-gray-400');
+            document.getElementById(`nav-${tabId}`).className = 'nav-item flex-1 flex flex-col items-center py-1 text-brand-600 dark:text-brand-400';
+        }
+
+        function openModal(id) {
+            document.getElementById('backdrop').classList.add('active');
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeAllModals() {
+            document.getElementById('backdrop').classList.remove('active');
+            document.querySelectorAll('.bottom-sheet').forEach(el => el.classList.remove('active'));
+        }
+
+        function setTxType(type) {
+            state.currentTxType = type;
+            const expenseBtn = document.getElementById('typeExpenseBtn');
+            const incomeBtn = document.getElementById('typeIncomeBtn');
+
+            if (type === 'expense') {
+                expenseBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-600 shadow-sm text-rose-600';
+                incomeBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-gray-500';
+            } else {
+                incomeBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-600 shadow-sm text-emerald-600';
+                expenseBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-gray-500';
+            }
+        }
+
+        function openTxModal(tx = null) {
+            if (tx) {
+                document.getElementById('txId').value = tx.id;
+                document.getElementById('txDesc').value = tx.desc;
+                document.getElementById('txAmount').value = tx.amount;
+                document.getElementById('txCategory').value = tx.category;
+                document.getElementById('txPaymentMethod').value = tx.paymentMethod || 'Pix';
+                document.getElementById('txDate').value = tx.date;
+                document.getElementById('txModalTitle').innerText = 'Editar Transação';
+                setTxType(tx.type);
+            } else {
+                document.getElementById('txForm').reset();
+                document.getElementById('txId').value = '';
+                document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('txModalTitle').innerText = 'Nova Transação';
+                setTxType('expense');
+            }
+            openModal('txModal');
+        }
+
+        function saveTransaction(e) {
+            e.preventDefault();
+            const id = document.getElementById('txId').value;
+            const newTx = {
+                id: id || Date.now().toString(),
+                desc: document.getElementById('txDesc').value,
+                amount: parseFloat(document.getElementById('txAmount').value),
+                category: document.getElementById('txCategory').value,
+                paymentMethod: document.getElementById('txPaymentMethod').value,
+                type: state.currentTxType,
+                date: document.getElementById('txDate').value
+            };
+
+            if (id) {
+                const idx = state.transactions.findIndex(t => t.id === id);
+                if (idx !== -1) state.transactions[idx] = newTx;
+            } else {
+                state.transactions.unshift(newTx);
+            }
+
+            saveData();
+            closeAllModals();
+        }
+
+        function deleteTx(id) {
+            if (confirm('Deseja excluir esta transação?')) {
+                state.transactions = state.transactions.filter(t => t.id !== id);
+                saveData();
+            }
+        }
+
+        function getFilteredTransactionsForCurrentMonth() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            return state.transactions.filter(t => {
+                const tDate = new Date(t.date + 'T00:00:00');
+                return tDate.getFullYear() === year && tDate.getMonth() === month;
+            });
+        }
+
+        function renderDashboard() {
+            const monthTxs = getFilteredTransactionsForCurrentMonth();
+            const income = monthTxs.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+            const expense = monthTxs.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+            const balance = income - expense;
+
+            document.getElementById('dashIncome').innerText = `R$ ${income.toFixed(2)}`;
+            document.getElementById('dashExpense').innerText = `R$ ${expense.toFixed(2)}`;
+            document.getElementById('dashBalance').innerText = `R$ ${balance.toFixed(2)}`;
+
+            const recent = monthTxs.slice(0, 4);
+            const recentList = document.getElementById('dashRecentList');
+            recentList.innerHTML = recent.map(t => `
+                <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-none">
+                    <div>
+                        <p class="text-xs font-semibold">${t.desc}</p>
+                        <span class="text-[10px] text-gray-400">${t.category} • ${t.paymentMethod || 'Pix'}</span>
+                    </div>
+                    <span class="text-xs font-bold ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}">
+                        ${t.type === 'income' ? '+' : '-'} R$ ${t.amount.toFixed(2)}
+                    </span>
+                </div>
+            `).join('') || '<p class="text-xs text-gray-400">Nenhuma transação neste mês.</p>';
+
+            updateChart(monthTxs);
+        }
+
+        function renderTransactions() {
+            const monthTxs = getFilteredTransactionsForCurrentMonth();
+            const search = document.getElementById('txSearch').value.toLowerCase();
+            const type = document.getElementById('txTypeFilter').value;
+            const cat = document.getElementById('txCatFilter').value;
+
+            const filtered = monthTxs.filter(t => {
+                const matchesSearch = t.desc.toLowerCase().includes(search);
+                const matchesType = type === 'all' || t.type === type;
+                const matchesCat = cat === 'all' || t.category === cat;
+                return matchesSearch && matchesType && matchesCat;
+            });
+
+            const list = document.getElementById('fullTxList');
+            list.innerHTML = filtered.map(t => `
+                <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex justify-between items-center">
+                    <div>
+                        <p class="text-xs font-bold">${t.desc}</p>
+                        <p class="text-[10px] text-gray-400">${t.category} • ${t.paymentMethod || 'Pix'} • ${t.date}</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xs font-bold ${t.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}">
+                            ${t.type === 'income' ? '+' : '-'} R$ ${t.amount.toFixed(2)}
+                        </span>
+                        <button onclick="openTxModal(${JSON.stringify(t).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-xs">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteTx('${t.id}')" class="text-gray-300 hover:text-rose-500 text-xs">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma transação encontrada no mês.</p>';
+        }
+
+        function renderFixedExpenses() {
+            const list = document.getElementById('fixedList');
+            const currentMonthTxs = getFilteredTransactionsForCurrentMonth();
+
+            list.innerHTML = state.fixedExpenses.map(f => {
+                const isPaid = currentMonthTxs.some(t => t.desc.includes(f.desc) && t.type === 'expense');
+
+                return `
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex justify-between items-center">
+                        <div>
+                            <p class="text-xs font-bold">${f.desc}</p>
+                            <p class="text-[10px] text-gray-400">Vence dia ${f.day} • ${f.category} • ${f.paymentMethod}</p>
+                            <span class="text-xs font-bold text-gray-800 dark:text-gray-100 mt-1 block">R$ ${f.amount.toFixed(2)}</span>
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            ${isPaid 
+                                ? `<span class="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 font-bold px-2.5 py-1 rounded-lg"><i class="fas fa-check mr-1"></i>Pago</span>`
+                                : `<button onclick="confirmFixedPayment('${f.id}')" class="text-xs bg-brand-600 text-white font-bold px-3 py-1.5 rounded-xl shadow-sm active:scale-95 transition-transform">Confirmar</button>`
+                            }
+                            <div class="flex items-center gap-2">
+                                <button onclick="openFixedModal(${JSON.stringify(f).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-[10px]"><i class="fas fa-edit mr-0.5"></i>Editar</button>
+                                <button onclick="deleteFixed('${f.id}')" class="text-gray-300 hover:text-rose-500 text-[10px]"><i class="fas fa-trash mr-0.5"></i>Remover</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma despesa fixa cadastrada.</p>';
+        }
+
+        function openFixedModal(fixed = null) {
+            if (fixed) {
+                document.getElementById('fixedId').value = fixed.id;
+                document.getElementById('fixedDesc').value = fixed.desc;
+                document.getElementById('fixedAmount').value = fixed.amount;
+                document.getElementById('fixedDay').value = fixed.day;
+                document.getElementById('fixedCategory').value = fixed.category;
+                document.getElementById('fixedPaymentMethod').value = fixed.paymentMethod || 'Pix';
+                document.getElementById('fixedModalTitle').innerText = 'Editar Despesa Fixa';
+            } else {
+                document.getElementById('fixedForm').reset();
+                document.getElementById('fixedId').value = '';
+                document.getElementById('fixedModalTitle').innerText = 'Nova Despesa Fixa';
+            }
+            openModal('fixedModal');
+        }
+
+        function saveFixed(e) {
+            e.preventDefault();
+            const id = document.getElementById('fixedId').value;
+            const fixedData = {
+                id: id || Date.now().toString(),
+                desc: document.getElementById('fixedDesc').value,
+                amount: parseFloat(document.getElementById('fixedAmount').value),
+                day: parseInt(document.getElementById('fixedDay').value),
+                category: document.getElementById('fixedCategory').value,
+                paymentMethod: document.getElementById('fixedPaymentMethod').value
+            };
+
+            if (id) {
+                const idx = state.fixedExpenses.findIndex(f => f.id === id);
+                if (idx !== -1) state.fixedExpenses[idx] = fixedData;
+            } else {
+                state.fixedExpenses.push(fixedData);
+            }
+
+            saveData();
+            closeAllModals();
+        }
+
+        function deleteFixed(id) {
+            if (confirm('Excluir esta despesa fixa?')) {
+                state.fixedExpenses = state.fixedExpenses.filter(f => f.id !== id);
+                saveData();
+            }
+        }
+
+        function confirmFixedPayment(id) {
+            const fixed = state.fixedExpenses.find(f => f.id === id);
+            if (!fixed) return;
+
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(fixed.day).padStart(2, '0');
+
+            const paidTx = {
+                id: Date.now().toString(),
+                type: 'expense',
+                desc: `[Fixa] ${fixed.desc}`,
+                amount: fixed.amount,
+                category: fixed.category,
+                paymentMethod: fixed.paymentMethod,
+                date: `${year}-${month}-${day}`
+            };
+
+            state.transactions.unshift(paidTx);
+            saveData();
+        }
+
+        function openReportModal() {
+            openModal('reportModal');
+            renderAnnualReport();
+        }
+
+        function renderAnnualReport() {
+            const currentYear = currentDate.getFullYear();
+            const monthlyData = [];
+
+            for (let m = 0; m < 12; m++) {
+                const txs = state.transactions.filter(t => {
+                    const d = new Date(t.date + 'T00:00:00');
+                    return d.getFullYear() === currentYear && d.getMonth() === m;
+                });
+
+                const inc = txs.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+                const exp = txs.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+
+                monthlyData.push({ month: monthNames[m], income: inc, expense: exp });
+            }
+
+            const list = document.getElementById('annualReportList');
+            list.innerHTML = monthlyData.map(d => `
+                <div class="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 text-xs">
+                    <span class="font-bold w-20">${d.month}</span>
+                    <span class="text-emerald-500 font-semibold">+R$ ${d.income.toFixed(0)}</span>
+                    <span class="text-rose-500 font-semibold">-R$ ${d.expense.toFixed(0)}</span>
+                    <span class="font-bold ${d.income - d.expense >= 0 ? 'text-gray-800 dark:text-white' : 'text-rose-600'}">R$ ${(d.income - d.expense).toFixed(0)}</span>
+                </div>
+            `).join('');
+
+            const ctx = document.getElementById('annualComparisonChart').getContext('2d');
+            if (state.annualChart) state.annualChart.destroy();
+
+            state.annualChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: monthNames.map(m => m.substring(0, 3)),
+                    datasets: [
+                        { label: 'Receitas', data: monthlyData.map(d => d.income), backgroundColor: '#10b981' },
+                        { label: 'Despesas', data: monthlyData.map(d => d.expense), backgroundColor: '#f43f5e' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { font: { size: 10 } } } }
+                }
+            });
+        }
+
+        function renderBudgets() {
+            const list = document.getElementById('budgetList');
+            const monthTxs = getFilteredTransactionsForCurrentMonth();
+
+            list.innerHTML = state.categories.map(cat => {
+                const spent = monthTxs
+                    .filter(t => t.category === cat.name && t.type === 'expense')
+                    .reduce((acc, t) => acc + t.amount, 0);
+                const limit = cat.limit || 0;
+                const pct = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
+                const isOver = limit > 0 && spent > limit;
+
+                return `
+                    <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full" style="background:${cat.color}"></span>
+                                ${cat.name}
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] ${isOver ? 'text-rose-600 font-bold' : 'text-gray-400'}">
+                                    R$ ${spent.toFixed(0)} ${limit > 0 ? `/ R$ ${limit}` : '(sem limite)'}
+                                </span>
+                                <button onclick="openCategoryModal(${JSON.stringify(cat).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-xs ml-1">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteCategory('${cat.id}')" class="text-gray-300 hover:text-rose-500 text-xs">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        ${limit > 0 ? `
+                        <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full ${isOver ? 'bg-rose-500' : 'bg-brand-600'}" style="width: ${pct}%"></div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma categoria cadastrada.</p>';
+        }
+
+        function openCategoryModal(cat = null) {
+            if (cat) {
+                document.getElementById('catId').value = cat.id;
+                document.getElementById('catName').value = cat.name;
+                document.getElementById('catColor').value = cat.color || '#6366f1';
+                document.getElementById('catLimit').value = cat.limit || '';
+                document.getElementById('categoryModalTitle').innerText = 'Editar Categoria / Limite';
+            } else {
+                document.getElementById('categoryForm').reset();
+                document.getElementById('catId').value = '';
+                document.getElementById('catColor').value = '#6366f1';
+                document.getElementById('categoryModalTitle').innerText = 'Nova Categoria e Limite';
+            }
+            openModal('categoryModal');
+        }
+
+        function saveCategory(e) {
+            e.preventDefault();
+            const id = document.getElementById('catId').value;
+            const name = document.getElementById('catName').value;
+            const color = document.getElementById('catColor').value;
+            const limit = parseFloat(document.getElementById('catLimit').value) || 0;
+
+            if (id) {
+                const cat = state.categories.find(c => c.id === id);
+                if (cat) {
+                    const oldName = cat.name;
+                    cat.name = name;
+                    cat.color = color;
+                    cat.limit = limit;
+
+                    if (oldName !== name) {
+                        state.transactions.forEach(t => { if (t.category === oldName) t.category = name; });
+                        state.fixedExpenses.forEach(f => { if (f.category === oldName) f.category = name; });
+                    }
+                }
+            } else {
+                state.categories.push({ id: Date.now().toString(), name, color, limit });
+            }
+
+            saveData();
+            closeAllModals();
+        }
+
+        function deleteCategory(id) {
+            if (confirm('Excluir esta categoria?')) {
+                state.categories = state.categories.filter(c => c.id !== id);
+                saveData();
+            }
+        }
+
+        function renderCategoryOptions() {
+            const selects = [document.getElementById('txCategory'), document.getElementById('txCatFilter'), document.getElementById('fixedCategory')];
+            selects.forEach(sel => {
+                if (!sel) return;
+                const isFilter = sel.id === 'txCatFilter';
+                sel.innerHTML = isFilter ? '<option value="all">Todas categorias</option>' : '';
+                state.categories.forEach(c => {
+                    sel.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                });
+            });
+        }
+
+        function renderGoals() {
+            const list = document.getElementById('goalsList');
+            list.innerHTML = state.goals.map(g => {
+                const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+                return `
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-xs font-bold">${g.title}</h4>
+                            <div class="flex items-center gap-2">
+                                <button onclick="depositGoal('${g.id}')" class="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-lg active:scale-95 transition-transform">+ Aporte</button>
+                                <button onclick="openGoalModal(${JSON.stringify(g).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-brand-500 text-xs"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteGoal('${g.id}')" class="text-gray-300 hover:text-rose-500 text-xs"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-gray-400">
+                            <span>R$ ${g.current.toFixed(2)} acumulados (${pct}%)</span>
+                            <span>Meta: R$ ${g.target.toFixed(2)}</span>
+                        </div>
+                        <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                            <div class="h-full bg-emerald-500 rounded-full" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma meta cadastrada.</p>';
+        }
+
+        function depositGoal(id) {
+            const val = prompt('Qual o valor do aporte para esta meta (R$)?');
+            const amount = parseFloat(val);
+            if (!isNaN(amount) && amount > 0) {
+                const goal = state.goals.find(g => g.id === id);
+                if (goal) {
+                    goal.current += amount;
+                    saveData();
+                }
+            }
+        }
+
+        function openGoalModal(goal = null) {
+            if (goal) {
+                document.getElementById('goalId').value = goal.id;
+                document.getElementById('goalTitle').value = goal.title;
+                document.getElementById('goalTarget').value = goal.target;
+                document.getElementById('goalCurrent').value = goal.current;
+                document.getElementById('goalDeadline').value = goal.deadline;
+                document.getElementById('goalModalTitle').innerText = 'Editar Meta';
+            } else {
+                document.getElementById('goalForm').reset();
+                document.getElementById('goalId').value = '';
+                document.getElementById('goalModalTitle').innerText = 'Nova Meta';
+            }
+            openModal('goalModal');
+        }
+
+        function saveGoal(e) {
+            e.preventDefault();
+            const id = document.getElementById('goalId').value;
+            const goalData = {
+                id: id || Date.now().toString(),
+                title: document.getElementById('goalTitle').value,
+                target: parseFloat(document.getElementById('goalTarget').value),
+                current: parseFloat(document.getElementById('goalCurrent').value),
+                deadline: document.getElementById('goalDeadline').value
+            };
+
+            if (id) {
+                const idx = state.goals.findIndex(g => g.id === id);
+                if (idx !== -1) state.goals[idx] = goalData;
+            } else {
+                state.goals.push(goalData);
+            }
+
+            saveData();
+            closeAllModals();
+        }
+
+        function deleteGoal(id) {
+            if (confirm('Excluir esta meta?')) {
+                state.goals = state.goals.filter(g => g.id !== id);
+                saveData();
+            }
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('categoryChartMobile').getContext('2d');
+            state.chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
+                }
+            });
+        }
+
+        function updateChart(monthTxs) {
+            if (!state.chart) return;
+            const expenses = monthTxs.filter(t => t.type === 'expense');
+            const dataMap = {};
+
+            expenses.forEach(t => {
+                dataMap[t.category] = (dataMap[t.category] || 0) + t.amount;
+            });
+
+            const labels = Object.keys(dataMap);
+            const data = Object.values(dataMap);
+            const colors = labels.map(l => {
+                const cat = state.categories.find(c => c.name === l);
+                return cat ? cat.color : '#6366f1';
+            });
+
+            state.chart.data.labels = labels;
+            state.chart.data.datasets[0].data = data;
+            state.chart.data.datasets[0].backgroundColor = colors;
+            state.chart.update();
+        }
+
+        function initDarkModeUI() {
+            const isDark = document.documentElement.classList.contains('dark');
+            document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-xs' : 'fas fa-moon text-xs';
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-xs' : 'fas fa-moon text-xs';
+            saveStoredData('finflow_theme', isDark ? 'dark' : 'light');
+        }
+    </script>
+</body>
+</html>
