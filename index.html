@@ -95,7 +95,7 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
 
-    <!-- TELA DE SETUP / BOAS-VINDAS (Aparece no primeiro acesso) -->
+    <!-- TELA DE SETUP / BOAS-VINDAS (Aparece APENAS no primeiro acesso do dispositivo) -->
     <div id="welcomeScreen" class="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col justify-center items-center px-6 hidden">
         <div class="w-full max-w-sm space-y-6 text-center">
             <div class="w-16 h-16 rounded-2xl bg-brand-600 text-white flex items-center justify-center text-2xl mx-auto shadow-lg shadow-brand-500/30">
@@ -512,9 +512,13 @@
 
         // --- GESTÃO DE USUÁRIO / SAUDAÇÃO ---
         function checkUserSetup() {
-            if (!userProfile) {
+            const isConfigured = localStorage.getItem('finflow_setup_completed');
+            
+            // Se o utilizador ainda não tiver perfil gravado ou não concluiu a tela de setup neste aparelho
+            if (!userProfile || !isConfigured) {
                 document.getElementById('welcomeScreen').classList.remove('hidden');
             } else {
+                document.getElementById('welcomeScreen').classList.add('hidden');
                 updateHeaderProfile();
             }
         }
@@ -527,6 +531,8 @@
             if (name) {
                 userProfile = { name, subtext };
                 localStorage.setItem('finflow_user', JSON.stringify(userProfile));
+                localStorage.setItem('finflow_setup_completed', 'true'); // Marcação para manter logado no aparelho
+                
                 document.getElementById('welcomeScreen').classList.add('hidden');
                 updateHeaderProfile();
             }
