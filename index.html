@@ -135,9 +135,13 @@
 
                 <div class="flex items-center gap-3 text-[9px] text-gray-400"><span class="h-px bg-gray-200 dark:bg-gray-700 flex-1"></span><span>OU</span><span class="h-px bg-gray-200 dark:bg-gray-700 flex-1"></span></div>
 
-                <button type="button" onclick="signInWithGoogle()" class="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white font-bold rounded-xl text-xs shadow-sm active:scale-98 transition-transform flex items-center justify-center gap-3">
-                    <i class="fab fa-google text-red-500"></i> Continuar com Google
+                <button type="button" id="googleAuthButton" onclick="signInWithGoogle()" class="w-full py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white font-bold rounded-xl text-xs shadow-sm active:scale-98 transition-transform flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-wait">
+                    <span class="w-5 h-5 rounded-full flex items-center justify-center bg-white">
+                        <i class="fab fa-google text-red-500"></i>
+                    </span>
+                    <span>Continuar com Google</span>
                 </button>
+                <p class="text-[9px] text-center text-gray-400 dark:text-gray-500 -mt-1">No celular, você poderá escolher uma das contas Google já conectadas.</p>
                 <p id="authStatus" class="text-[10px] text-center text-gray-500 dark:text-gray-400 min-h-[16px]"></p>
             </div>
 
@@ -549,7 +553,11 @@
 
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
+        // Mantém a sessão no navegador e permite trocar de conta pelo seletor do Google.
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.warn);
         const googleProvider = new firebase.auth.GoogleAuthProvider();
+        googleProvider.addScope('profile');
+        googleProvider.addScope('email');
         googleProvider.setCustomParameters({ prompt: 'select_account' });
 
         let firebaseUser = null;
@@ -672,13 +680,23 @@
             };
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             initDarkModeUI();
             initChart();
+
+            // Primeiro processa um eventual retorno do login Google por redirect.
+            try {
+                const result = await auth.getRedirectResult();
+                if (result && result.user) {
+                    console.log('Login Google concluído por redirect.');
+                }
+            } catch (err) {
+                console.error('Erro no retorno do Google:', err);
+                const status = document.getElementById('authStatus');
+                if (status) status.innerText = getFirebaseAuthError(err);
+            }
+
             auth.onAuthStateChanged(handleAuthStateChanged);
-            auth.getRedirectResult().catch(err => {
-                console.warn('Resultado do login Google:', err);
-            });
         });
 
         async function handleAuthStateChanged(user) {
@@ -819,24 +837,45 @@
             }
         }
 
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+                || (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+        }
+
+        function getFirebaseAuthError(error) {
+            const messages = {
+                'auth/popup-blocked': 'O navegador bloqueou a janela do Google. Tente novamente.',
+                'auth/popup-closed-by-user': 'A janela de login foi fechada antes de concluir.',
+                'auth/cancelled-popup-request': 'O login anterior foi cancelado.',
+                'auth/account-exists-with-different-credential': 'Já existe uma conta com este e-mail usando outro método de login.',
+                'auth/unauthorized-domain': 'Este domínio ainda não está autorizado no Firebase Authentication.',
+                'auth/operation-not-allowed': 'O login com Google não está ativado no Firebase.',
+                'auth/network-request-failed': 'Falha de conexão. Verifique sua internet e tente novamente.'
+            };
+            return messages[error?.code] || `Não foi possível entrar com Google${error?.message ? ': ' + error.message : '.'}`;
+        }
+
         async function signInWithGoogle() {
             const status = document.getElementById('authStatus');
-            status.innerText = 'Abrindo login Google...';
+            const button = document.getElementById('googleAuthButton');
+            if (button) button.disabled = true;
+            status.innerText = isMobileDevice()
+                ? 'Abrindo o Google para escolher sua conta...'
+                : 'Abrindo login Google...';
+
             try {
+                // No celular, redirect é mais confiável e permite usar diretamente as contas
+                // Google já conectadas ao aparelho/navegador. No desktop, popup é mais rápido.
+                if (isMobileDevice()) {
+                    await auth.signInWithRedirect(googleProvider);
+                    return;
+                }
+
                 await auth.signInWithPopup(googleProvider);
             } catch (error) {
-                console.error(error);
-                if (['auth/popup-blocked', 'auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(error.code)) {
-                    status.innerText = 'Abrindo login Google em uma nova página...';
-                    try {
-                        await auth.signInWithRedirect(googleProvider);
-                    } catch (redirectError) {
-                        console.error(redirectError);
-                        status.innerText = 'Não foi possível iniciar o login Google.';
-                    }
-                } else {
-                    status.innerText = `Erro no login: ${error.message}`;
-                }
+                console.error('Erro no login Google:', error);
+                status.innerText = getFirebaseAuthError(error);
+                if (button) button.disabled = false;
             }
         }
 
