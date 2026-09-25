@@ -1,543 +1,4 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="h-full">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AJ-MyFinance - Controle Financeiro Mobile</title>
-
-    <!-- PWA Web App Meta Tags -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#4f46e5">
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-
-    <script>
-        if (localStorage.getItem('finflow_theme') === 'dark' || (!('finflow_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#eef2ff',
-                            100: '#e0e7ff',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                            900: '#312e81',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        * {
-            -webkit-touch-callout: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        body {
-            padding-bottom: env(safe-area-inset-bottom, 20px);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        .pb-safe {
-            padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
-        }
-
-        .pt-safe {
-            padding-top: max(1rem, env(safe-area-inset-top, 0px));
-        }
-
-        .bottom-sheet {
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            transform: translateY(100%);
-        }
-
-        .bottom-sheet.active {
-            transform: translateY(0);
-        }
-
-        .backdrop {
-            transition: opacity 0.3s ease-out;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .backdrop.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-    </style>
-</head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
-
-    <!-- TELA DE SETUP / BOAS-VINDAS -->
-    <div id="welcomeScreen" class="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col justify-center items-center px-6 hidden">
-        <div class="w-full max-w-sm space-y-6 text-center">
-            <div class="w-16 h-16 rounded-2xl bg-brand-600 text-white flex items-center justify-center text-2xl mx-auto shadow-lg shadow-brand-500/30">
-                <i class="fas fa-wallet"></i>
-            </div>
-            <div>
-                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Bem-vindo ao AJ-MyFinance!</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Configure o seu perfil para começar a organizar suas finanças.</p>
-            </div>
-            <div id="authLoginArea" class="space-y-4 text-left">
-                <div class="bg-gray-50 dark:bg-gray-800/70 rounded-2xl p-1 flex gap-1 border border-gray-100 dark:border-gray-700">
-                    <button type="button" id="authTabLogin" onclick="showAuthMode('login')" class="flex-1 py-2 rounded-xl bg-white dark:bg-gray-700 shadow-sm text-[11px] font-bold text-brand-600 dark:text-brand-400">Entrar</button>
-                    <button type="button" id="authTabRegister" onclick="showAuthMode('register')" class="flex-1 py-2 rounded-xl text-[11px] font-bold text-gray-500 dark:text-gray-400">Criar conta</button>
-                </div>
-
-                <div id="emailAuthPanel" class="space-y-3">
-                    <div>
-                        <label class="text-[10px] font-bold text-gray-500 uppercase">E-mail</label>
-                        <div class="relative mt-1">
-                            <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                            <input type="email" id="authEmail" autocomplete="email" placeholder="seu@email.com" class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-9 pr-3 py-3 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-gray-500 uppercase">Senha</label>
-                        <div class="relative mt-1">
-                            <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                            <input type="password" id="authPassword" autocomplete="current-password" placeholder="Sua senha" class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-9 pr-10 py-3 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none">
-                            <button type="button" onclick="toggleAuthPassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i id="authPasswordIcon" class="fas fa-eye text-xs"></i></button>
-                        </div>
-                    </div>
-                    <button type="button" id="emailAuthButton" onclick="submitEmailAuth()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-lg active:scale-98 transition-transform">Entrar</button>
-                    <button type="button" id="forgotPasswordButton" onclick="resetPassword()" class="w-full py-1 text-[10px] font-bold text-brand-600 dark:text-brand-400">Esqueci minha senha</button>
-                </div>
-
-                <div class="flex items-center gap-3 text-[9px] text-gray-400"><span class="h-px bg-gray-200 dark:bg-gray-700 flex-1"></span><span>OU</span><span class="h-px bg-gray-200 dark:bg-gray-700 flex-1"></span></div>
-
-                <button type="button" id="googleAuthButton" onclick="signInWithGoogle()" class="w-full py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white font-bold rounded-xl text-xs shadow-sm active:scale-98 transition-transform flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-wait">
-                    <span class="w-5 h-5 rounded-full flex items-center justify-center bg-white">
-                        <i class="fab fa-google text-red-500"></i>
-                    </span>
-                    <span>Continuar com Google</span>
-                </button>
-                <p class="text-[9px] text-center text-gray-400 dark:text-gray-500 -mt-1">No celular, você poderá escolher uma das contas Google já conectadas.</p>
-                <p id="authStatus" class="text-[10px] text-center text-gray-500 dark:text-gray-400 min-h-[16px]"></p>
-            </div>
-
-            <form id="profileSetupForm" onsubmit="saveUserProfile(event)" class="space-y-4 text-left hidden">
-                <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-                    <img id="setupGooglePhoto" src="" alt="Foto do perfil" class="w-10 h-10 rounded-full object-cover hidden">
-                    <div class="min-w-0">
-                        <p id="setupGoogleName" class="text-xs font-bold truncate"></p>
-                        <p id="setupGoogleEmail" class="text-[10px] text-gray-500 dark:text-gray-400 truncate"></p>
-                    </div>
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Seu Nome / Como quer ser chamado</label>
-                    <input type="text" id="setupUserName" required placeholder="Ex: João Silva" class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Frase Motivacional / Mensagem</label>
-                    <input type="text" id="setupUserSubtext" value="A sua liberdade financeira começa hoje." class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
-                </div>
-                <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-lg active:scale-98 transition-transform">Entrar no Sistema</button>
-                <button type="button" onclick="signOutUser()" class="w-full py-2.5 text-xs font-bold text-gray-500 hover:text-rose-600">Usar outra conta Google</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Cabeçalho Fixo Mobile -->
-    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 pt-safe">
-        <div class="px-4 py-3 flex justify-between items-center max-w-lg mx-auto">
-            <div class="flex items-center space-x-3 cursor-pointer" onclick="openProfileModal()">
-                <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md font-bold text-sm overflow-hidden" id="userAvatar">
-                    <img id="userAvatarImage" src="" alt="Foto do usuário" class="w-full h-full object-cover hidden">
-                    <span id="userAvatarInitial">U</span>
-                </div>
-                <div>
-                    <h1 class="text-sm font-bold leading-tight" id="headerGreeting">Olá, Usuário!</h1>
-                    <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[220px]" id="headerSubtext">A sua liberdade financeira começa hoje.</p>
-                </div>
-            </div>
-
-            <!-- BOTOES DO CABEÇALHO (ATUALIZAR, PERFIL, TEMA) -->
-            <div class="flex items-center space-x-2">
-                <button onclick="forceAppUpdate()" title="Buscar Atualizações" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
-                    <i class="fas fa-sync-alt text-xs"></i>
-                </button>
-                <button onclick="openProfileModal()" title="Perfil" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
-                    <i class="fas fa-user-cog text-xs"></i>
-                </button>
-                <button id="themeToggleBtn" onclick="toggleDarkMode()" title="Tema" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
-                    <i id="themeIcon" class="fas fa-moon text-xs"></i>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Conteúdo Principal -->
-    <main class="flex-1 px-4 pt-4 max-w-lg mx-auto w-full pb-safe">
-
-        <!-- SELETOR DE MÊS -->
-        <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between mb-4">
-            <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-95 transition-transform">
-                <i class="fas fa-chevron-left text-xs"></i>
-            </button>
-            <div class="text-center">
-                <span id="currentMonthLabel" class="text-xs font-bold uppercase tracking-wider block">Mês Atual</span>
-            </div>
-            <button onclick="changeMonth(1)" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-95 transition-transform">
-                <i class="fas fa-chevron-right text-xs"></i>
-            </button>
-        </div>
-        
-        <!-- ABA: DASHBOARD -->
-        <section id="tab-dashboard" class="tab-content space-y-4">
-            <div class="grid grid-cols-3 gap-2">
-                <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                    <span class="text-[10px] text-gray-500 uppercase font-semibold block">Receitas</span>
-                    <span id="dashIncome" class="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">R$ 0,00</span>
-                </div>
-                <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                    <span class="text-[10px] text-gray-500 uppercase font-semibold block">Despesas</span>
-                    <span id="dashExpense" class="text-xs font-bold text-rose-600 dark:text-rose-400 mt-1 block">R$ 0,00</span>
-                </div>
-                <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                    <span class="text-[10px] text-gray-500 uppercase font-semibold block">Saldo</span>
-                    <span id="dashBalance" class="text-xs font-bold text-gray-900 dark:text-white mt-1 block">R$ 0,00</span>
-                </div>
-            </div>
-
-            <button onclick="openReportModal()" class="w-full py-2.5 bg-brand-50 dark:bg-gray-800 border border-brand-200 dark:border-gray-700 text-brand-600 dark:text-brand-400 text-xs font-bold rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-98 transition-transform">
-                <i class="fas fa-chart-line"></i>
-                Ver Relatório e Comparativo Anual
-            </button>
-
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">Distribuição do Mês</h3>
-                <div class="relative h-48 flex justify-center items-center">
-                    <canvas id="categoryChartMobile"></canvas>
-                </div>
-            </div>
-
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Recentes do Mês</h3>
-                    <button onclick="switchTab('transactions')" class="text-xs text-brand-600 dark:text-brand-400 font-semibold">Ver tudo</button>
-                </div>
-                <div id="dashRecentList" class="space-y-2"></div>
-            </div>
-        </section>
-
-        <!-- ABA: TRANSAÇÕES -->
-        <section id="tab-transactions" class="tab-content space-y-4 hidden">
-            <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
-                <input type="text" id="txSearch" oninput="renderTransactions()" placeholder="Buscar transação..." class="w-full bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500 dark:text-white">
-                <div class="flex gap-2">
-                    <select id="txTypeFilter" onchange="renderTransactions()" class="flex-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-2 py-2 text-xs dark:text-white">
-                        <option value="all">Todos os tipos</option>
-                        <option value="income">Receitas</option>
-                        <option value="expense">Despesas</option>
-                    </select>
-                    <select id="txCatFilter" onchange="renderTransactions()" class="flex-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-2 py-2 text-xs dark:text-white">
-                        <option value="all">Todas categorias</option>
-                    </select>
-                </div>
-            </div>
-
-            <div id="fullTxList" class="space-y-2"></div>
-        </section>
-
-        <!-- ABA: DESPESAS FIXAS -->
-        <section id="tab-fixed" class="tab-content space-y-4 hidden">
-            <div class="flex justify-between items-center">
-                <h2 class="text-sm font-bold text-gray-700 dark:text-gray-300">Despesas Recorrentes / Fixas</h2>
-                <button onclick="openFixedModal()" class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-xl font-medium shadow-sm active:scale-95 transition-transform">
-                    <i class="fas fa-plus text-[10px] mr-1"></i> Nova Fixa
-                </button>
-            </div>
-            <p class="text-[11px] text-gray-500 dark:text-gray-400">Cadastre suas contas mensais. Clique em "Confirmar Pagamento" para debitar o valor no mês selecionado.</p>
-            <div id="fixedList" class="space-y-3"></div>
-        </section>
-
-        <!-- ABA: LIMITES -->
-        <section id="tab-budgets" class="tab-content space-y-4 hidden">
-            <div class="flex justify-between items-center">
-                <h2 class="text-sm font-bold text-gray-700 dark:text-gray-300">Controle de Gastos por Categoria</h2>
-                <button onclick="openCategoryModal()" class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-xl font-medium shadow-sm active:scale-95 transition-transform">
-                    <i class="fas fa-plus text-[10px] mr-1"></i> Nova Categoria
-                </button>
-            </div>
-            <div id="budgetList" class="space-y-3"></div>
-        </section>
-
-        <!-- ABA: METAS -->
-        <section id="tab-goals" class="tab-content space-y-4 hidden">
-            <div class="flex justify-between items-center">
-                <h2 class="text-sm font-bold text-gray-700 dark:text-gray-300">Minhas Metas</h2>
-                <button onclick="openGoalModal()" class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-xl font-medium shadow-sm active:scale-95 transition-transform">
-                    <i class="fas fa-plus text-[10px] mr-1"></i> Nova Meta
-                </button>
-            </div>
-            <div id="goalsList" class="space-y-3"></div>
-        </section>
-
-    </main>
-
-    <!-- FAB -->
-    <button onclick="openTxModal()" class="fixed right-5 bottom-20 z-30 w-14 h-14 bg-brand-600 text-white rounded-full shadow-lg flex items-center justify-center text-xl active:scale-90 transition-transform">
-        <i class="fas fa-plus"></i>
-    </button>
-
-    <!-- Bottom Bar -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-30 px-1 py-2">
-        <div class="max-w-lg mx-auto flex justify-between items-center text-center">
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item flex-1 flex flex-col items-center py-1 text-brand-600 dark:text-brand-400">
-                <i class="fas fa-chart-pie text-base"></i>
-                <span class="text-[9px] font-medium mt-1">Início</span>
-            </button>
-            <button onclick="switchTab('transactions')" id="nav-transactions" class="nav-item flex-1 flex flex-col items-center py-1 text-gray-400">
-                <i class="fas fa-list-ul text-base"></i>
-                <span class="text-[9px] font-medium mt-1">Extrato</span>
-            </button>
-            <button onclick="switchTab('fixed')" id="nav-fixed" class="nav-item flex-1 flex flex-col items-center py-1 text-gray-400">
-                <i class="fas fa-calendar-check text-base"></i>
-                <span class="text-[9px] font-medium mt-1">Fixas</span>
-            </button>
-            <button onclick="switchTab('budgets')" id="nav-budgets" class="nav-item flex-1 flex flex-col items-center py-1 text-gray-400">
-                <i class="fas fa-sliders-h text-base"></i>
-                <span class="text-[9px] font-medium mt-1">Limites</span>
-            </button>
-            <button onclick="switchTab('goals')" id="nav-goals" class="nav-item flex-1 flex flex-col items-center py-1 text-gray-400">
-                <i class="fas fa-bullseye text-base"></i>
-                <span class="text-[9px] font-medium mt-1">Metas</span>
-            </button>
-        </div>
-    </nav>
-
-    <!-- Backdrop -->
-    <div id="backdrop" onclick="closeAllModals()" class="backdrop fixed inset-0 bg-black/50 z-40"></div>
-
-    <!-- MODAL: Perfil + Backup -->
-    <div id="profileModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
-        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-        <h3 class="text-base font-bold mb-4">Perfil do Usuário</h3>
-        <form onsubmit="updateUserProfile(event)" class="space-y-3">
-            <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Seu Nome</label>
-                <input type="text" id="editUserName" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-            </div>
-            <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Frase Motivacional</label>
-                <input type="text" id="editUserSubtext" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-            </div>
-            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Alterações</button>
-        </form>
-
-        <div class="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
-            <div class="flex items-center gap-3">
-                <img id="profileGooglePhoto" src="" alt="Foto do Google" class="w-10 h-10 rounded-full object-cover hidden">
-                <div class="min-w-0 flex-1">
-                    <p id="profileGoogleName" class="text-xs font-bold truncate"></p>
-                    <p id="profileGoogleEmail" class="text-[10px] text-gray-500 dark:text-gray-400 truncate"></p>
-                </div>
-            </div>
-            <button type="button" onclick="signOutUser()" class="w-full mt-3 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
-                <i class="fas fa-right-from-bracket"></i> Sair / Trocar conta Google
-            </button>
-        </div>
-
-        <hr class="my-5 border-gray-200 dark:border-gray-700">
-
-        <!-- SEÇÃO DE BACKUP DE DADOS -->
-        <div class="space-y-3">
-            <h4 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Segurança & Dados (Backup)</h4>
-            <p class="text-[11px] text-gray-500 dark:text-gray-400">Faça o download dos seus dados para não perder registros ou restaure um backup salvo.</p>
-            
-            <div class="grid grid-cols-2 gap-2 pt-1">
-                <button onclick="exportBackupData()" class="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
-                    <i class="fas fa-file-export"></i> Exportar Backup
-                </button>
-                <button onclick="document.getElementById('importFile').click()" class="py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
-                    <i class="fas fa-file-import"></i> Importar Backup
-                </button>
-                <input type="file" id="importFile" accept=".json" class="hidden" onchange="importBackupData(event)">
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: Nova Transação -->
-    <div id="txModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
-        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-        <h3 id="txModalTitle" class="text-base font-bold mb-4">Nova Transação</h3>
-        <form id="txForm" onsubmit="saveTransaction(event)" class="space-y-3">
-            <input type="hidden" id="txId">
-            <div class="flex rounded-xl bg-gray-100 dark:bg-gray-700 p-1">
-                <button type="button" id="typeExpenseBtn" onclick="setTxType('expense')" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white dark:bg-gray-600 shadow-sm text-rose-600">Despesa</button>
-                <button type="button" id="typeIncomeBtn" onclick="setTxType('income')" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500">Receita</button>
-            </div>
-            <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Descrição</label>
-                <input type="text" id="txDesc" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Valor (R$)</label>
-                    <input type="number" step="0.01" id="txAmount" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Pagamento</label>
-                    <select id="txPaymentMethod" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-                        <option value="Pix">Pix</option>
-                        <option value="Crédito">Cartão de Crédito</option>
-                        <option value="Débito">Cartão de Débito</option>
-                        <option value="Dinheiro">Dinheiro</option>
-                        <option value="Transferência">Transferência</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Categoria</label>
-                <select id="txCategory" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white"></select>
-            </div>
-            <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Data</label>
-                <input type="date" id="txDate" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-            </div>
-            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Transação</button>
-        </form>
-    </div>
-
-    <!-- MODAL: Despesa Fixa -->
-    <div id="fixedModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
-        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-        <h3 id="fixedModalTitle" class="text-base font-bold mb-4">Nova Despesa Fixa</h3>
-        <form id="fixedForm" onsubmit="saveFixed(event)" class="space-y-3">
-            <input type="hidden" id="fixedId">
-            <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Conta / Despesa</label>
-                <input type="text" id="fixedDesc" required placeholder="Ex: Aluguel, Internet" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Valor (R$)</label>
-                    <input type="number" step="0.01" id="fixedAmount" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Dia Vencimento</label>
-                    <input type="number" min="1" max="31" id="fixedDay" required placeholder="Ex: 10" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Categoria</label>
-                    <select id="fixedCategory" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white"></select>
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Forma Pagamento</label>
-                    <select id="fixedPaymentMethod" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-                        <option value="Pix">Pix</option>
-                        <option value="Crédito">Cartão de Crédito</option>
-                        <option value="Débito">Cartão de Débito</option>
-                        <option value="Dinheiro">Dinheiro</option>
-                        <option value="Transferência">Transferência</option>
-                    </select>
-                </div>
-            </div>
-            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Cadastrar Despesa Fixa</button>
-        </form>
-    </div>
-
-    <!-- MODAL: Relatório -->
-    <div id="reportModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
-        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-        <h3 class="text-base font-bold mb-3">Relatório Comparativo Anual</h3>
-        
-        <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-2xl mb-4">
-            <h4 class="text-xs font-bold mb-2">Evolução de Receitas vs Despesas</h4>
-            <div class="relative h-56">
-                <canvas id="annualComparisonChart"></canvas>
-            </div>
-        </div>
-
-        <div id="annualReportList" class="space-y-2 max-h-60 overflow-y-auto"></div>
-    </div>
-
-    <!-- MODAL: Categoria -->
-    <div id="categoryModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
-        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-        <h3 id="categoryModalTitle" class="text-base font-bold mb-4">Categoria e Limite</h3>
-        
-        <form id="categoryForm" onsubmit="saveCategory(event)" class="space-y-3">
-            <input type="hidden" id="catId">
-            <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Categoria</label>
-                <input type="text" id="catName" placeholder="Ex: Alimentação" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Cor do Gráfico</label>
-                    <input type="color" id="catColor" value="#6366f1" class="w-full h-9 mt-1 p-1 rounded-xl bg-gray-50 dark:bg-gray-700 border-none cursor-pointer">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Limite Mensal (R$)</label>
-                    <input type="number" step="0.01" id="catLimit" placeholder="0 para sem limite" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-                </div>
-            </div>
-            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Categoria</button>
-        </form>
-    </div>
-
-    <!-- MODAL: Meta -->
-    <div id="goalModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
-        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-        <h3 id="goalModalTitle" class="text-base font-bold mb-4">Nova Meta</h3>
-        <form id="goalForm" onsubmit="saveGoal(event)" class="space-y-3">
-            <input type="hidden" id="goalId">
-            <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Meta</label>
-                <input type="text" id="goalTitle" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Meta Total (R$)</label>
-                    <input type="number" step="0.01" id="goalTarget" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Valor Atual (R$)</label>
-                    <input type="number" step="0.01" id="goalCurrent" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-                </div>
-            </div>
-            <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Data Limite</label>
-                <input type="date" id="goalDeadline" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
-            </div>
-            <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Meta</button>
-        </form>
-    </div>
-
-    <!-- LÓGICA DO SISTEMA -->
+<!-- LÓGICA DO SISTEMA -->
     <script>
         const DEFAULT_SUBTEXT = "A sua liberdade financeira começa hoje.";
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -556,23 +17,6 @@
         const googleProvider = new firebase.auth.GoogleAuthProvider();
         googleProvider.addScope('profile');
         googleProvider.addScope('email');
-
-        function isMobileDevice() {
-            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-                || (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
-        }
-
-        // Aplica o prompt 'select_account' prioritariamente apenas quando for Desktop/Popup,
-        // evitando interferência no redirecionamento e na exibição das contas salvas no celular.
-        if (!isMobileDevice()) {
-            googleProvider.setCustomParameters({ prompt: 'select_account' });
-        }
-
-        let authReady = null;
-
-        // A persistência precisa estar definida ANTES de iniciar o fluxo de autenticação.
-        // Isso evita o efeito de autenticar e, logo depois, voltar para a tela de login.
-        authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
         let firebaseUser = null;
         let userProfile = null;
@@ -608,7 +52,6 @@
         };
 
         function getStorageKey(key) {
-            // O tema continua global; dados financeiros e perfil ficam separados por UID.
             if (key === 'finflow_theme') return key;
             return firebaseUser ? `${key}_${firebaseUser.uid}` : `finflow_guest_${key}`;
         }
@@ -654,7 +97,6 @@
                 }
             };
 
-            // Migra os dados antigos apenas uma vez para a primeira conta Google utilizada neste navegador.
             const migrationKey = 'finflow_legacy_migration_done';
             if (!localStorage.getItem(migrationKey) && !localStorage.getItem(getStorageKey('finflow_user'))) {
                 const legacyProfile = localStorage.getItem('finflow_user');
@@ -694,23 +136,24 @@
             };
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', () => {
             initDarkModeUI();
             initChart();
 
-            // Aguarda a persistência LOCAL antes de processar qualquer retorno do Google.
-            try {
-                await authReady;
-                const result = await auth.getRedirectResult();
-                if (result && result.user) {
-                    console.log('Login Google concluído por redirect:', result.user.uid);
-                }
-            } catch (err) {
-                console.error('Erro no retorno do Google:', err);
-                const status = document.getElementById('authStatus');
-                if (status) status.innerText = getFirebaseAuthError(err);
-            }
+            // Trata o resultado de um redirecionamento (caso o navegador tenha usado Redirect)
+            auth.getRedirectResult()
+                .then(result => {
+                    if (result && result.user) {
+                        console.log('Login efetuado via Redirect:', result.user.uid);
+                    }
+                })
+                .catch(err => {
+                    console.error('Erro no retorno do Redirect:', err);
+                    const status = document.getElementById('authStatus');
+                    if (status) status.innerText = getFirebaseAuthError(err);
+                });
 
+            // Escuta as alterações no estado de autenticação
             auth.onAuthStateChanged(handleAuthStateChanged);
         });
 
@@ -869,36 +312,28 @@
             const status = document.getElementById('authStatus');
             const button = document.getElementById('googleAuthButton');
             if (button) button.disabled = true;
-            status.innerText = isMobileDevice()
-                ? 'Abrindo o Google para escolher sua conta...'
-                : 'Abrindo login Google...';
+            status.innerText = 'Autenticando com o Google...';
 
             try {
-                await authReady;
-
-                if (isMobileDevice()) {
-                    // No celular, o redirect evita popup bloqueado e permite abrir a página nativa de login do Google.
-                    await auth.signInWithRedirect(googleProvider);
-                    return;
-                }
-
+                // Tenta Popup em todas as plataformas primeiro para garantir a continuidade do localStorage na mesma sessão
                 await auth.signInWithPopup(googleProvider);
             } catch (error) {
-                console.error('Erro no login Google:', error);
+                console.warn('Falha no Popup. Tentando Redirect como alternativa...', error);
 
-                // Se o popup do computador for bloqueado, tenta redirect como alternativa.
-                if (!isMobileDevice() && ['auth/popup-blocked', 'auth/popup-closed-by-user'].includes(error?.code)) {
+                // Se o popup falhar ou for bloqueado pelo sistema, utiliza Redirect como fallback
+                if (['auth/popup-blocked', 'auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(error?.code)) {
                     try {
-                        status.innerText = 'Abrindo o Google...';
+                        status.innerText = 'Redirecionando para o Google...';
                         await auth.signInWithRedirect(googleProvider);
                         return;
                     } catch (redirectError) {
-                        console.error('Erro no redirect Google:', redirectError);
+                        console.error('Erro no Redirect Fallback:', redirectError);
                         status.innerText = getFirebaseAuthError(redirectError);
                     }
                 } else {
                     status.innerText = getFirebaseAuthError(error);
                 }
+            } finally {
                 if (button) button.disabled = false;
             }
         }
@@ -913,7 +348,6 @@
             }
         }
 
-        // --- ATUALIZAÇÃO FORÇADA DE CACHE DO APP ---
         function forceAppUpdate() {
             if (confirm("Deseja buscar a versão mais recente do aplicativo? Seus dados continuarão salvos.")) {
                 if ('serviceWorker' in navigator) {
@@ -928,7 +362,6 @@
             }
         }
 
-        // --- EXPORTAR E IMPORTAR BACKUP ---
         function exportBackupData() {
             const dataToExport = {
                 userProfile: userProfile,
@@ -987,17 +420,6 @@
                 }
             };
             reader.readAsText(file);
-        }
-
-        function checkUserSetup() {
-            if (!firebaseUser) return;
-            loadUserData();
-            if (!userProfile || getStoredData('finflow_setup_completed') !== 'true') {
-                showProfileSetup();
-            } else {
-                document.getElementById('welcomeScreen').classList.add('hidden');
-                updateHeaderProfile();
-            }
         }
 
         function saveUserProfile(e) {
@@ -1646,5 +1068,3 @@
             saveStoredData('finflow_theme', isDark ? 'dark' : 'light');
         }
     </script>
-</body>
-</html>
