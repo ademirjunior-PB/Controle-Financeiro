@@ -19,7 +19,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-        // Aplicação do tema antes de renderizar a página
         if (localStorage.getItem('finflow_theme') === 'dark' || (!('finflow_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
@@ -95,7 +94,7 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
 
-    <!-- TELA DE SETUP / BOAS-VINDAS (Aparece APENAS no primeiro acesso do dispositivo) -->
+    <!-- TELA DE SETUP / BOAS-VINDAS -->
     <div id="welcomeScreen" class="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col justify-center items-center px-6 hidden">
         <div class="w-full max-w-sm space-y-6 text-center">
             <div class="w-16 h-16 rounded-2xl bg-brand-600 text-white flex items-center justify-center text-2xl mx-auto shadow-lg shadow-brand-500/30">
@@ -146,7 +145,7 @@
     <!-- Conteúdo Principal -->
     <main class="flex-1 px-4 pt-4 max-w-lg mx-auto w-full pb-safe">
 
-        <!-- SELETOR DE MÊS NO TOPO DA APLICAÇÃO -->
+        <!-- SELETOR DE MÊS -->
         <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between mb-4">
             <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-95 transition-transform">
                 <i class="fas fa-chevron-left text-xs"></i>
@@ -159,9 +158,8 @@
             </button>
         </div>
         
-        <!-- ABA: DASHBOARD / INÍCIO -->
+        <!-- ABA: DASHBOARD -->
         <section id="tab-dashboard" class="tab-content space-y-4">
-            <!-- Cards de Resumo -->
             <div class="grid grid-cols-3 gap-2">
                 <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                     <span class="text-[10px] text-gray-500 uppercase font-semibold block">Receitas</span>
@@ -177,13 +175,11 @@
                 </div>
             </div>
 
-            <!-- Botão de Relatório Comparativo -->
             <button onclick="openReportModal()" class="w-full py-2.5 bg-brand-50 dark:bg-gray-800 border border-brand-200 dark:border-gray-700 text-brand-600 dark:text-brand-400 text-xs font-bold rounded-2xl flex items-center justify-center gap-2 shadow-sm active:scale-98 transition-transform">
                 <i class="fas fa-chart-line"></i>
                 Ver Relatório e Comparativo Anual
             </button>
 
-            <!-- Gráfico principal de Gastos por Categoria -->
             <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">Distribuição do Mês</h3>
                 <div class="relative h-48 flex justify-center items-center">
@@ -191,19 +187,16 @@
                 </div>
             </div>
 
-            <!-- Resumo das Últimas Transações -->
             <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Recentes do Mês</h3>
                     <button onclick="switchTab('transactions')" class="text-xs text-brand-600 dark:text-brand-400 font-semibold">Ver tudo</button>
                 </div>
-                <div id="dashRecentList" class="space-y-2">
-                    <!-- Gerado Dinamicamente -->
-                </div>
+                <div id="dashRecentList" class="space-y-2"></div>
             </div>
         </section>
 
-        <!-- ABA: TRANSAÇÕES / EXTRATO -->
+        <!-- ABA: TRANSAÇÕES -->
         <section id="tab-transactions" class="tab-content space-y-4 hidden">
             <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
                 <input type="text" id="txSearch" oninput="renderTransactions()" placeholder="Buscar transação..." class="w-full bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500 dark:text-white">
@@ -219,9 +212,7 @@
                 </div>
             </div>
 
-            <div id="fullTxList" class="space-y-2">
-                <!-- Gerado dinamicamente -->
-            </div>
+            <div id="fullTxList" class="space-y-2"></div>
         </section>
 
         <!-- ABA: DESPESAS FIXAS -->
@@ -233,12 +224,10 @@
                 </button>
             </div>
             <p class="text-[11px] text-gray-500 dark:text-gray-400">Cadastre suas contas mensais. Clique em "Confirmar Pagamento" para debitar o valor no mês selecionado.</p>
-            <div id="fixedList" class="space-y-3">
-                <!-- Lista de despesas fixas -->
-            </div>
+            <div id="fixedList" class="space-y-3"></div>
         </section>
 
-        <!-- ABA: LIMITES (CONTROLE DE GASTOS) -->
+        <!-- ABA: LIMITES -->
         <section id="tab-budgets" class="tab-content space-y-4 hidden">
             <div class="flex justify-between items-center">
                 <h2 class="text-sm font-bold text-gray-700 dark:text-gray-300">Controle de Gastos por Categoria</h2>
@@ -246,12 +235,10 @@
                     <i class="fas fa-plus text-[10px] mr-1"></i> Nova Categoria
                 </button>
             </div>
-            <div id="budgetList" class="space-y-3">
-                <!-- Cards de limite por categoria -->
-            </div>
+            <div id="budgetList" class="space-y-3"></div>
         </section>
 
-        <!-- ABA: METAS & OBJETIVOS -->
+        <!-- ABA: METAS -->
         <section id="tab-goals" class="tab-content space-y-4 hidden">
             <div class="flex justify-between items-center">
                 <h2 class="text-sm font-bold text-gray-700 dark:text-gray-300">Minhas Metas</h2>
@@ -259,19 +246,17 @@
                     <i class="fas fa-plus text-[10px] mr-1"></i> Nova Meta
                 </button>
             </div>
-            <div id="goalsList" class="space-y-3">
-                <!-- Cards de Metas -->
-            </div>
+            <div id="goalsList" class="space-y-3"></div>
         </section>
 
     </main>
 
-    <!-- Botão Flutuante Principal (FAB) -->
+    <!-- FAB -->
     <button onclick="openTxModal()" class="fixed right-5 bottom-20 z-30 w-14 h-14 bg-brand-600 text-white rounded-full shadow-lg flex items-center justify-center text-xl active:scale-90 transition-transform">
         <i class="fas fa-plus"></i>
     </button>
 
-    <!-- Barra de Navegação Inferior (Bottom Bar) -->
+    <!-- Bottom Bar -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-30 px-1 py-2">
         <div class="max-w-lg mx-auto flex justify-between items-center text-center">
             <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item flex-1 flex flex-col items-center py-1 text-brand-600 dark:text-brand-400">
@@ -297,10 +282,10 @@
         </div>
     </nav>
 
-    <!-- Fundo Escuro para os Modais -->
+    <!-- Backdrop -->
     <div id="backdrop" onclick="closeAllModals()" class="backdrop fixed inset-0 bg-black/50 z-40"></div>
 
-    <!-- MODAL: Editar Perfil / Usuário -->
+    <!-- MODAL: Perfil -->
     <div id="profileModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
         <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
         <h3 class="text-base font-bold mb-4">Perfil do Usuário</h3>
@@ -310,7 +295,7 @@
                 <input type="text" id="editUserName" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase">Frase Motivacional / Mensagem</label>
+                <label class="text-[10px] font-bold text-gray-500 uppercase">Frase Motivacional</label>
                 <input type="text" id="editUserSubtext" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Alterações</button>
@@ -359,7 +344,7 @@
         </form>
     </div>
 
-    <!-- MODAL: Nova / Editar Despesa Fixa -->
+    <!-- MODAL: Despesa Fixa -->
     <div id="fixedModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
         <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
         <h3 id="fixedModalTitle" class="text-base font-bold mb-4">Nova Despesa Fixa</h3>
@@ -367,7 +352,7 @@
             <input type="hidden" id="fixedId">
             <div>
                 <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Conta / Despesa</label>
-                <input type="text" id="fixedDesc" required placeholder="Ex: Aluguel, Internet, Netflix" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                <input type="text" id="fixedDesc" required placeholder="Ex: Aluguel, Internet" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
@@ -375,7 +360,7 @@
                     <input type="number" step="0.01" id="fixedAmount" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Dia de Vencimento</label>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Dia Vencimento</label>
                     <input type="number" min="1" max="31" id="fixedDay" required placeholder="Ex: 10" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
             </div>
@@ -399,7 +384,7 @@
         </form>
     </div>
 
-    <!-- MODAL: Relatório Comparativo Mensal -->
+    <!-- MODAL: Relatório -->
     <div id="reportModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
         <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
         <h3 class="text-base font-bold mb-3">Relatório Comparativo Anual</h3>
@@ -411,12 +396,10 @@
             </div>
         </div>
 
-        <div id="annualReportList" class="space-y-2 max-h-60 overflow-y-auto">
-            <!-- Tabela mensal gerada dinamicamente -->
-        </div>
+        <div id="annualReportList" class="space-y-2 max-h-60 overflow-y-auto"></div>
     </div>
 
-    <!-- MODAL: Gerenciar Categoria / Limite -->
+    <!-- MODAL: Categoria -->
     <div id="categoryModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
         <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
         <h3 id="categoryModalTitle" class="text-base font-bold mb-4">Categoria e Limite</h3>
@@ -425,7 +408,7 @@
             <input type="hidden" id="catId">
             <div>
                 <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Categoria</label>
-                <input type="text" id="catName" placeholder="Ex: Alimentação, Lazer" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                <input type="text" id="catName" placeholder="Ex: Alimentação" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
@@ -434,14 +417,14 @@
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Limite Mensal (R$)</label>
-                    <input type="number" step="0.01" id="catLimit" placeholder="Ex: 500 (0 para sem limite)" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                    <input type="number" step="0.01" id="catLimit" placeholder="0 para sem limite" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
             </div>
             <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Categoria</button>
         </form>
     </div>
 
-    <!-- MODAL: Meta / Objetivo -->
+    <!-- MODAL: Meta -->
     <div id="goalModal" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl p-5 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
         <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
         <h3 id="goalModalTitle" class="text-base font-bold mb-4">Nova Meta</h3>
@@ -469,32 +452,56 @@
         </form>
     </div>
 
-    <!-- LÓGICA DO SISTEMA -->
+    <!-- LÓGICA DO SISTEMA COM DUPLA PERSISTÊNCIA -->
     <script>
         const DEFAULT_SUBTEXT = "A sua liberdade financeira começa hoje.";
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
         let currentDate = new Date();
 
-        let userProfile = JSON.parse(localStorage.getItem('finflow_user')) || null;
+        // UTILITÁRIOS PARA PERSISTÊNCIA REFORÇADA (LocalStorage + Cookie Backup)
+        function setCookie(name, value, days = 365) {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/; SameSite=Lax';
+        }
+
+        function getCookie(name) {
+            return document.cookie.split('; ').reduce((r, v) => {
+                const parts = v.split('=');
+                return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+            }, '');
+        }
+
+        function getStoredData(key) {
+            const local = localStorage.getItem(key);
+            if (local) return local;
+            return getCookie(key) || null;
+        }
+
+        function saveStoredData(key, value) {
+            localStorage.setItem(key, value);
+            setCookie(key, value);
+        }
+
+        let userProfile = JSON.parse(getStoredData('finflow_user')) || null;
 
         let state = {
-            transactions: JSON.parse(localStorage.getItem('finflow_txs')) || [
+            transactions: JSON.parse(getStoredData('finflow_txs')) || [
                 { id: '1', type: 'income', desc: 'Salário', amount: 4500, category: 'Salário', paymentMethod: 'Pix', date: new Date().toISOString().split('T')[0] },
                 { id: '2', type: 'expense', desc: 'Mercado', amount: 650, category: 'Alimentação', paymentMethod: 'Débito', date: new Date().toISOString().split('T')[0] }
             ],
-            fixedExpenses: JSON.parse(localStorage.getItem('finflow_fixed')) || [
+            fixedExpenses: JSON.parse(getStoredData('finflow_fixed')) || [
                 { id: 'f1', desc: 'Aluguel', amount: 1200, category: 'Moradia', day: 10, paymentMethod: 'Pix' },
                 { id: 'f2', desc: 'Internet', amount: 100, category: 'Moradia', day: 15, paymentMethod: 'Pix' }
             ],
-            categories: JSON.parse(localStorage.getItem('finflow_cats')) || [
+            categories: JSON.parse(getStoredData('finflow_cats')) || [
                 { id: 'c1', name: 'Alimentação', color: '#f59e0b', limit: 1000 },
                 { id: 'c2', name: 'Moradia', color: '#3b82f6', limit: 1500 },
                 { id: 'c3', name: 'Transporte', color: '#8b5cf6', limit: 400 },
                 { id: 'c4', name: 'Lazer', color: '#ec4899', limit: 300 },
                 { id: 'c5', name: 'Salário', color: '#10b981', limit: 0 }
             ],
-            goals: JSON.parse(localStorage.getItem('finflow_goals')) || [
+            goals: JSON.parse(getStoredData('finflow_goals')) || [
                 { id: 'g1', title: 'Reserva de Emergência', target: 10000, current: 3500, deadline: '2026-12-31' }
             ],
             currentTxType: 'expense',
@@ -510,12 +517,10 @@
             document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
         });
 
-        // --- GESTÃO DE USUÁRIO / SAUDAÇÃO ---
         function checkUserSetup() {
-            const isConfigured = localStorage.getItem('finflow_setup_completed');
+            const isConfigured = getStoredData('finflow_setup_completed');
             
-            // Se o utilizador ainda não tiver perfil gravado ou não concluiu a tela de setup neste aparelho
-            if (!userProfile || !isConfigured) {
+            if (!userProfile || isConfigured !== 'true') {
                 document.getElementById('welcomeScreen').classList.remove('hidden');
             } else {
                 document.getElementById('welcomeScreen').classList.add('hidden');
@@ -530,8 +535,8 @@
 
             if (name) {
                 userProfile = { name, subtext };
-                localStorage.setItem('finflow_user', JSON.stringify(userProfile));
-                localStorage.setItem('finflow_setup_completed', 'true'); // Marcação para manter logado no aparelho
+                saveStoredData('finflow_user', JSON.stringify(userProfile));
+                saveStoredData('finflow_setup_completed', 'true');
                 
                 document.getElementById('welcomeScreen').classList.add('hidden');
                 updateHeaderProfile();
@@ -561,17 +566,17 @@
 
             if (name) {
                 userProfile = { name, subtext };
-                localStorage.setItem('finflow_user', JSON.stringify(userProfile));
+                saveStoredData('finflow_user', JSON.stringify(userProfile));
                 updateHeaderProfile();
                 closeAllModals();
             }
         }
 
         function saveData() {
-            localStorage.setItem('finflow_txs', JSON.stringify(state.transactions));
-            localStorage.setItem('finflow_fixed', JSON.stringify(state.fixedExpenses));
-            localStorage.setItem('finflow_cats', JSON.stringify(state.categories));
-            localStorage.setItem('finflow_goals', JSON.stringify(state.goals));
+            saveStoredData('finflow_txs', JSON.stringify(state.transactions));
+            saveStoredData('finflow_fixed', JSON.stringify(state.fixedExpenses));
+            saveStoredData('finflow_cats', JSON.stringify(state.categories));
+            saveStoredData('finflow_goals', JSON.stringify(state.goals));
             renderAll();
         }
 
@@ -614,7 +619,6 @@
             document.querySelectorAll('.bottom-sheet').forEach(el => el.classList.remove('active'));
         }
 
-        // --- TRANSAÇÕES ---
         function setTxType(type) {
             state.currentTxType = type;
             const expenseBtn = document.getElementById('typeExpenseBtn');
@@ -752,7 +756,6 @@
             `).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma transação encontrada no mês.</p>';
         }
 
-        // --- DESPESAS FIXAS ---
         function renderFixedExpenses() {
             const list = document.getElementById('fixedList');
             const currentMonthTxs = getFilteredTransactionsForCurrentMonth();
@@ -851,7 +854,6 @@
             saveData();
         }
 
-        // --- RELATÓRIO COMPARATIVO ANUAL ---
         function openReportModal() {
             openModal('reportModal');
             renderAnnualReport();
@@ -903,7 +905,6 @@
             });
         }
 
-        // --- LIMITES E CATEGORIAS ---
         function renderBudgets() {
             const list = document.getElementById('budgetList');
             const monthTxs = getFilteredTransactionsForCurrentMonth();
@@ -1008,7 +1009,6 @@
             });
         }
 
-        // --- METAS E OBJETIVOS ---
         function renderGoals() {
             const list = document.getElementById('goalsList');
             list.innerHTML = state.goals.map(g => {
@@ -1092,7 +1092,6 @@
             }
         }
 
-        // --- GRÁFICO ROSCA ---
         function initChart() {
             const ctx = document.getElementById('categoryChartMobile').getContext('2d');
             state.chart = new Chart(ctx, {
@@ -1128,7 +1127,6 @@
             state.chart.update();
         }
 
-        // --- DARK MODE PERSISTENTE ---
         function initDarkModeUI() {
             const isDark = document.documentElement.classList.contains('dark');
             document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-xs' : 'fas fa-moon text-xs';
@@ -1137,7 +1135,7 @@
         function toggleDarkMode() {
             const isDark = document.documentElement.classList.toggle('dark');
             document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-xs' : 'fas fa-moon text-xs';
-            localStorage.setItem('finflow_theme', isDark ? 'dark' : 'light');
+            saveStoredData('finflow_theme', isDark ? 'dark' : 'light');
         }
     </script>
 </body>
