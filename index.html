@@ -583,6 +583,19 @@
         let currentDate = new Date();
         let userProfile = null;
 
+        /* ============================================================
+           UTILITÁRIO DE DATA (CORRIGE BUG DE FUSO HORÁRIO)
+           -> NUNCA use new Date().toISOString().split('T')[0] para
+              pegar a data local, pois isso retorna a data em UTC
+              e pode "pular" pro dia seguinte dependendo do horário.
+        ============================================================ */
+        function getLocalDateString(date = new Date()) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         let state = {
             transactions: [],
             fixedExpenses: [],
@@ -604,7 +617,7 @@
         }
 
         function defaultTransactions() {
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDateString();
             return [
                 { id: 'tx1', type: 'income', desc: 'Salário', amount: 4500, category: 'Salário', paymentMethod: 'Pix', date: today },
                 { id: 'tx2', type: 'expense', desc: 'Mercado', amount: 650, category: 'Alimentação', paymentMethod: 'Débito', date: today },
@@ -646,7 +659,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             initDarkModeUI();
             initChart();
-            document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('txDate').value = getLocalDateString();
         });
 
         /* ============================================================
@@ -929,7 +942,7 @@
 
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
             const downloadAnchor = document.createElement('a');
-            const fileName = `AJ-MyFinance_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            const fileName = `AJ-MyFinance_Backup_${getLocalDateString()}.json`;
 
             downloadAnchor.setAttribute("href", dataStr);
             downloadAnchor.setAttribute("download", fileName);
@@ -1050,7 +1063,7 @@
             } else {
                 document.getElementById('txForm').reset();
                 document.getElementById('txId').value = '';
-                document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('txDate').value = getLocalDateString();
                 document.getElementById('txModalTitle').innerText = 'Nova Transação';
                 setTxType('expense');
             }
@@ -1723,7 +1736,7 @@
                         amount: amount,
                         category: categoryName,
                         paymentMethod: 'Pix',
-                        date: new Date().toISOString().split('T')[0]
+                        date: getLocalDateString()
                     };
                     state.transactions.unshift(newTx);
                     saveData();
@@ -1748,7 +1761,7 @@
                         amount: amount,
                         category: categoryName,
                         paymentMethod: 'Pix',
-                        date: new Date().toISOString().split('T')[0]
+                        date: getLocalDateString()
                     };
                     state.transactions.unshift(newTx);
                     saveData();
