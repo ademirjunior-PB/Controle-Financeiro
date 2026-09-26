@@ -18,7 +18,7 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- FIREBASE SDK (compat, funciona direto no HTML sem build tools) -->
+    <!-- FIREBASE SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -120,7 +120,7 @@
             <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3">
                 <div id="signupNameField" class="hidden">
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Nome Completo</label>
-                    <input type="text" id="authName" placeholder="Seu nome" class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
+                    <input type="text" id="authName" placeholder="Ex: João Silva" class="w-full mt-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500">
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">E-mail</label>
@@ -249,6 +249,9 @@
                 <div class="relative h-48 flex justify-center items-center">
                     <canvas id="categoryChartMobile"></canvas>
                 </div>
+                <p id="chartEmptyHint" class="text-[10px] text-gray-400 text-center mt-2 hidden">
+                    Cadastre despesas para visualizar a distribuição por categoria aqui 📊
+                </p>
             </div>
 
             <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
@@ -263,7 +266,7 @@
         <!-- ABA: TRANSAÇÕES -->
         <section id="tab-transactions" class="tab-content space-y-4 hidden">
             <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-2">
-                <input type="text" id="txSearch" oninput="renderTransactions()" placeholder="Buscar transação..." class="w-full bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500 dark:text-white">
+                <input type="text" id="txSearch" oninput="renderTransactions()" placeholder="Buscar transação... Ex: Mercado" class="w-full bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500 dark:text-white">
                 <div class="flex gap-2">
                     <select id="txTypeFilter" onchange="renderTransactions()" class="flex-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-2 py-2 text-xs dark:text-white">
                         <option value="all">Todos os tipos</option>
@@ -413,12 +416,12 @@
             </div>
             <div>
                 <label class="text-[10px] font-bold text-gray-500 uppercase">Descrição</label>
-                <input type="text" id="txDesc" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                <input type="text" id="txDesc" required placeholder="Ex: Mercado, Uber, Salário, Aluguel" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Valor (R$)</label>
-                    <input type="number" step="0.01" id="txAmount" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                    <input type="number" step="0.01" id="txAmount" required placeholder="Ex: 150,00" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Pagamento</label>
@@ -451,12 +454,12 @@
             <input type="hidden" id="fixedId">
             <div>
                 <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Conta / Despesa</label>
-                <input type="text" id="fixedDesc" required placeholder="Ex: Aluguel, Internet" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                <input type="text" id="fixedDesc" required placeholder="Ex: Aluguel, Internet, Energia" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Valor (R$)</label>
-                    <input type="number" step="0.01" id="fixedAmount" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                    <input type="number" step="0.01" id="fixedAmount" required placeholder="Ex: 1200,00" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Dia Vencimento</label>
@@ -507,7 +510,7 @@
             <input type="hidden" id="catId">
             <div>
                 <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Categoria</label>
-                <input type="text" id="catName" placeholder="Ex: Alimentação" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                <input type="text" id="catName" placeholder="Ex: Alimentação, Transporte, Saúde" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
@@ -516,7 +519,7 @@
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Limite Mensal (R$)</label>
-                    <input type="number" step="0.01" id="catLimit" placeholder="0 para sem limite" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                    <input type="number" step="0.01" id="catLimit" placeholder="Ex: 1000 (0 para sem limite)" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
             </div>
             <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md mt-2 active:scale-98 transition-transform">Salvar Categoria</button>
@@ -531,16 +534,16 @@
             <input type="hidden" id="goalId">
             <div>
                 <label class="text-[10px] font-bold text-gray-500 uppercase">Nome da Meta</label>
-                <input type="text" id="goalTitle" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                <input type="text" id="goalTitle" required placeholder="Ex: Viagem de Férias, Notebook Novo" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Meta Total (R$)</label>
-                    <input type="number" step="0.01" id="goalTarget" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                    <input type="number" step="0.01" id="goalTarget" required placeholder="Ex: 5000,00" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
                 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase">Valor Atual (R$)</label>
-                    <input type="number" step="0.01" id="goalCurrent" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
+                    <input type="number" step="0.01" id="goalCurrent" required placeholder="Ex: 500,00" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-3 py-2 text-xs dark:text-white">
                 </div>
             </div>
             <div>
@@ -1108,7 +1111,13 @@
                         ${t.type === 'income' ? '+' : '-'} R$ ${t.amount.toFixed(2)}
                     </span>
                 </div>
-            `).join('') || '<p class="text-xs text-gray-400">Nenhuma transação neste mês.</p>';
+            `).join('') || `
+                <div class="text-center py-6 space-y-2">
+                    <i class="fas fa-receipt text-2xl text-gray-300 dark:text-gray-600"></i>
+                    <p class="text-xs text-gray-400">Nenhuma transação neste mês.</p>
+                    <p class="text-[10px] text-gray-400 px-4">Toque no botão <span class="font-bold text-brand-600">+</span> e cadastre, por exemplo:<br>"Mercado" - R$ 250,00 - Categoria: Alimentação</p>
+                </div>
+            `;
 
             updateChart(monthTxs);
         }
@@ -1145,7 +1154,18 @@
                         </button>
                     </div>
                 </div>
-            `).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma transação encontrada no mês.</p>';
+            `).join('') || `
+                <div class="text-center py-8 space-y-2">
+                    <i class="fas fa-search-dollar text-3xl text-gray-300 dark:text-gray-600"></i>
+                    <p class="text-xs text-gray-400">Nenhuma transação encontrada.</p>
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mx-4 mt-3 text-left">
+                        <p class="text-[10px] font-bold text-gray-500 mb-1">Exemplos de cadastro:</p>
+                        <p class="text-[10px] text-gray-400">💰 Receita: "Salário" - R$ 4.500,00 - Pix</p>
+                        <p class="text-[10px] text-gray-400">🛒 Despesa: "Mercado" - R$ 350,00 - Débito</p>
+                        <p class="text-[10px] text-gray-400">🚗 Despesa: "Uber" - R$ 25,00 - Pix</p>
+                    </div>
+                </div>
+            `;
         }
 
         /* ============================================================
@@ -1177,7 +1197,19 @@
                         </div>
                     </div>
                 `;
-            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma despesa fixa cadastrada.</p>';
+            }).join('') || `
+                <div class="text-center py-8 space-y-2">
+                    <i class="fas fa-calendar-times text-3xl text-gray-300 dark:text-gray-600"></i>
+                    <p class="text-xs text-gray-400">Nenhuma despesa fixa cadastrada.</p>
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mx-4 mt-3 text-left">
+                        <p class="text-[10px] font-bold text-gray-500 mb-1">Exemplos de despesas fixas:</p>
+                        <p class="text-[10px] text-gray-400">🏠 "Aluguel" - R$ 1.200,00 - Dia 10</p>
+                        <p class="text-[10px] text-gray-400">📶 "Internet" - R$ 100,00 - Dia 15</p>
+                        <p class="text-[10px] text-gray-400">💡 "Energia Elétrica" - R$ 180,00 - Dia 20</p>
+                        <p class="text-[10px] text-gray-400">📺 "Streaming" - R$ 39,90 - Dia 5</p>
+                    </div>
+                </div>
+            `;
         }
 
         function openFixedModal(fixed = null) {
@@ -1344,7 +1376,19 @@
                         ` : ''}
                     </div>
                 `;
-            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma categoria cadastrada.</p>';
+            }).join('') || `
+                <div class="text-center py-8 space-y-2">
+                    <i class="fas fa-tags text-3xl text-gray-300 dark:text-gray-600"></i>
+                    <p class="text-xs text-gray-400">Nenhuma categoria cadastrada.</p>
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mx-4 mt-3 text-left">
+                        <p class="text-[10px] font-bold text-gray-500 mb-1">Exemplos de categorias e limites:</p>
+                        <p class="text-[10px] text-gray-400">🍔 "Alimentação" - Limite R$ 1.000,00</p>
+                        <p class="text-[10px] text-gray-400">🚌 "Transporte" - Limite R$ 400,00</p>
+                        <p class="text-[10px] text-gray-400">🎮 "Lazer" - Limite R$ 300,00</p>
+                        <p class="text-[10px] text-gray-400">🏥 "Saúde" - Limite R$ 500,00</p>
+                    </div>
+                </div>
+            `;
         }
 
         function openCategoryModal(cat = null) {
@@ -1436,7 +1480,19 @@
                         </div>
                     </div>
                 `;
-            }).join('') || '<p class="text-xs text-gray-400 text-center py-4">Nenhuma meta cadastrada.</p>';
+            }).join('') || `
+                <div class="text-center py-8 space-y-2">
+                    <i class="fas fa-bullseye text-3xl text-gray-300 dark:text-gray-600"></i>
+                    <p class="text-xs text-gray-400">Nenhuma meta cadastrada.</p>
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mx-4 mt-3 text-left">
+                        <p class="text-[10px] font-bold text-gray-500 mb-1">Exemplos de metas:</p>
+                        <p class="text-[10px] text-gray-400">🏖️ "Viagem de Férias" - Meta R$ 5.000,00</p>
+                        <p class="text-[10px] text-gray-400">💻 "Notebook Novo" - Meta R$ 4.000,00</p>
+                        <p class="text-[10px] text-gray-400">🚨 "Reserva de Emergência" - Meta R$ 10.000,00</p>
+                        <p class="text-[10px] text-gray-400">🎓 "Curso Profissionalizante" - Meta R$ 1.500,00</p>
+                    </div>
+                </div>
+            `;
         }
 
         function depositGoal(id) {
@@ -1515,6 +1571,10 @@
         function updateChart(monthTxs) {
             if (!state.chart) return;
             const expenses = monthTxs.filter(t => t.type === 'expense');
+
+            const emptyHint = document.getElementById('chartEmptyHint');
+            if (emptyHint) emptyHint.classList.toggle('hidden', expenses.length > 0);
+
             const dataMap = {};
 
             expenses.forEach(t => {
