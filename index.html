@@ -512,7 +512,7 @@
         </form>
     </div>
 
-    <!-- INTEGRAÇÃO FIREBASE SDK -->
+    <!-- INTEGRAÇÃO FIREBASE SDK + FIRESTORE SYNC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { 
@@ -526,8 +526,14 @@
             signOut, 
             onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            onSnapshot 
+        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        // Configuração real do Firebase
+        // Configuração Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCykfYieUDo_LU5t16yj8JTt-Fsiidb9J4",
             authDomain: "aj-connectpb.firebaseapp.com",
@@ -539,8 +545,11 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
         const googleProvider = new GoogleAuthProvider();
 
+        let currentUser = null;
+        let unsubscribeSnapshot = null;
         let isSignUpMode = false;
 
         // Toggle Modo Login / Cadastro
@@ -592,6 +601,7 @@
         // Logout
         window.handleLogout = async () => {
             try {
+                if (unsubscribeSnapshot) unsubscribeSnapshot();
                 await signOut(auth);
                 closeAllModals();
             } catch (error) {
@@ -599,11 +609,56 @@
             }
         };
 
+        // Sincronizar dados para o Cloud Firestore
+        window.syncToCloud = async function() {
+            if (!currentUser) return;
+            try {
+                const userDocRef = doc(db, "users", currentUser.uid);
+                await setDoc(userDocRef, {
+                    userProfile: userProfile,
+                    transactions: state.transactions,
+                    fixedExpenses: state.fixedExpenses,
+                    categories: state.categories,
+                    goals: state.goals,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+            } catch (err) {
+                console.error("Erro ao sincronizar com Firestore:", err);
+            }
+        };
+
+        // escutar mudanças em tempo real no Firestore
+        function listenToCloudData(uid) {
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+            const userDocRef = doc(db, "users", uid);
+
+            unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.transactions) state.transactions = data.transactions;
+                    if (data.fixedExpenses) state.fixedExpenses = data.fixedExpenses;
+                    if (data.categories) state.categories = data.categories;
+                    if (data.goals) state.goals = data.goals;
+                    if (data.userProfile) {
+                        userProfile = data.userProfile;
+                        saveStoredData('finflow_user', JSON.stringify(userProfile));
+                    }
+                    renderAll();
+                } else {
+                    // Primeiro acesso do usuário no banco: envia os dados iniciais
+                    window.syncToCloud();
+                }
+            }, (error) => {
+                console.error("Erro no listener do Firestore:", error);
+            });
+        }
+
         // Monitor do Estado do Usuário
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                currentUser = user;
                 document.getElementById('authScreen').classList.add('hidden');
-                
+
                 const displayName = user.displayName || user.email.split('@')[0];
                 const photoURL = user.photoURL;
 
@@ -616,7 +671,10 @@
 
                 saveStoredData('finflow_user', JSON.stringify(userProfile));
                 updateHeaderProfile();
+                listenToCloudData(user.uid);
             } else {
+                currentUser = null;
+                if (unsubscribeSnapshot) unsubscribeSnapshot();
                 document.getElementById('authScreen').classList.remove('hidden');
             }
         });
@@ -732,6 +790,7 @@
                 userProfile = { ...userProfile, name, subtext };
                 saveStoredData('finflow_user', JSON.stringify(userProfile));
                 updateHeaderProfile();
+                saveData();
                 closeAllModals();
             }
         }
@@ -811,6 +870,10 @@
             saveStoredData('finflow_fixed', JSON.stringify(state.fixedExpenses));
             saveStoredData('finflow_cats', JSON.stringify(state.categories));
             saveStoredData('finflow_goals', JSON.stringify(state.goals));
+            
+            if (window.syncToCloud) {
+                window.syncToCloud();
+            }
             renderAll();
         }
 
