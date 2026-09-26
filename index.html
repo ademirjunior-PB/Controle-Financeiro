@@ -5,20 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>AJ-MyFinance - Controle Financeiro Mobile</title>
 
-    <!-- PWA Web App Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- FIREBASE SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -36,12 +31,8 @@
                 extend: {
                     colors: {
                         brand: {
-                            50: '#eef2ff',
-                            100: '#e0e7ff',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                            900: '#312e81',
+                            50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1',
+                            600: '#4f46e5', 700: '#4338ca', 900: '#312e81',
                         }
                     }
                 }
@@ -54,47 +45,25 @@
             -webkit-touch-callout: none;
             -webkit-tap-highlight-color: transparent;
         }
-        
         body {
             padding-bottom: env(safe-area-inset-bottom, 20px);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-
-        .pb-safe {
-            padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
-        }
-
-        .pt-safe {
-            padding-top: max(1rem, env(safe-area-inset-top, 0px));
-        }
-
+        .pb-safe { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
+        .pt-safe { padding-top: max(1rem, env(safe-area-inset-top, 0px)); }
         .bottom-sheet {
             transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             transform: translateY(100%);
         }
-
-        .bottom-sheet.active {
-            transform: translateY(0);
-        }
-
+        .bottom-sheet.active { transform: translateY(0); }
         .backdrop {
             transition: opacity 0.3s ease-out;
             opacity: 0;
             pointer-events: none;
         }
-
-        .backdrop.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        .backdrop.active { opacity: 1; pointer-events: auto; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
@@ -191,7 +160,6 @@
                 </div>
             </div>
 
-            <!-- BOTOES DO CABEÇALHO (ATUALIZAR, PERFIL, TEMA) -->
             <div class="flex items-center space-x-2">
                 <button onclick="forceAppUpdate()" title="Buscar Atualizações" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-transform">
                     <i class="fas fa-sync-alt text-xs"></i>
@@ -209,7 +177,6 @@
     <!-- Conteúdo Principal -->
     <main class="flex-1 px-4 pt-4 max-w-lg mx-auto w-full pb-safe">
 
-        <!-- SELETOR DE MÊS -->
         <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between mb-4">
             <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center active:scale-95 transition-transform">
                 <i class="fas fa-chevron-left text-xs"></i>
@@ -315,9 +282,14 @@
 
     </main>
 
-    <!-- FAB -->
+    <!-- FAB Nova Transação -->
     <button onclick="openTxModal()" class="fixed right-5 bottom-20 z-30 w-14 h-14 bg-brand-600 text-white rounded-full shadow-lg flex items-center justify-center text-xl active:scale-90 transition-transform">
         <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- FAB Chatbot -->
+    <button onclick="toggleChat()" class="fixed left-5 bottom-20 z-30 w-14 h-14 bg-gradient-to-br from-brand-500 to-brand-700 text-white rounded-full shadow-lg flex items-center justify-center text-xl active:scale-90 transition-transform">
+        <i class="fas fa-comment-dots"></i>
     </button>
 
     <!-- Bottom Bar -->
@@ -346,7 +318,7 @@
         </div>
     </nav>
 
-    <!-- Backdrop -->
+    <!-- Backdrop compartilhado dos modais -->
     <div id="backdrop" onclick="closeAllModals()" class="backdrop fixed inset-0 bg-black/50 z-40"></div>
 
     <!-- MODAL: Perfil + Backup + Conta -->
@@ -367,7 +339,6 @@
 
         <hr class="my-5 border-gray-200 dark:border-gray-700">
 
-        <!-- SEÇÃO DE BACKUP DE DADOS -->
         <div class="space-y-3">
             <h4 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Segurança & Dados (Backup)</h4>
             <p class="text-[11px] text-gray-500 dark:text-gray-400">Faça o download dos seus dados para não perder registros ou restaure um backup salvo.</p>
@@ -385,7 +356,6 @@
 
         <hr class="my-5 border-gray-200 dark:border-gray-700">
 
-        <!-- SEÇÃO DE CONTA / LOGOUT -->
         <div class="space-y-3">
             <h4 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Conta</h4>
             <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-2xl">
@@ -551,6 +521,36 @@
         </form>
     </div>
 
+    <!-- BACKDROP DO CHAT -->
+    <div id="chatBackdrop" onclick="closeChat()" class="backdrop fixed inset-0 bg-black/50 z-40"></div>
+
+    <!-- PAINEL DO CHATBOT -->
+    <div id="chatPanel" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-3xl z-50 max-w-lg mx-auto h-[80vh] flex flex-col overflow-hidden">
+        <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 rounded-full bg-brand-600 flex items-center justify-center text-white">
+                    <i class="fas fa-robot text-sm"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold">Assistente Financeiro</h3>
+                    <p class="text-[10px] text-emerald-500 font-semibold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span> Online</p>
+                </div>
+            </div>
+            <button onclick="closeChat()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 flex items-center justify-center">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
+
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-4"></div>
+
+        <form onsubmit="handleChatSubmit(event)" class="p-3 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2 flex-shrink-0">
+            <input type="text" id="chatInput" placeholder="Digite sua mensagem..." autocomplete="off" class="flex-1 bg-gray-50 dark:bg-gray-700 border-none rounded-full px-4 py-2.5 text-xs dark:text-white focus:ring-2 focus:ring-brand-500">
+            <button type="submit" class="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center active:scale-90 transition-transform flex-shrink-0">
+                <i class="fas fa-paper-plane text-xs"></i>
+            </button>
+        </form>
+    </div>
+
     <!-- LÓGICA DO SISTEMA -->
     <script>
         /* ============================================================
@@ -568,8 +568,6 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-
-        // Mantém a sessão ativa entre recarregamentos (mesma conta em qualquer dispositivo)
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
         let currentUser = null;
@@ -579,6 +577,7 @@
            CONSTANTES E ESTADO GLOBAL
         ============================================================ */
         const DEFAULT_SUBTEXT = "A sua liberdade financeira começa hoje.";
+        const SUPPORT_EMAIL = "ajconnectpb@gmail.com";
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
         let currentDate = new Date();
@@ -594,10 +593,6 @@
             annualChart: null
         };
 
-        /* ============================================================
-           DADOS DE EXEMPLO (pré-preenchidos para novos usuários)
-           -> O usuário pode editar ou excluir livremente depois.
-        ============================================================ */
         function defaultCategories() {
             return [
                 { id: 'c1', name: 'Alimentação', color: '#f59e0b', limit: 1000 },
@@ -632,7 +627,7 @@
         }
 
         /* ============================================================
-           TEMA (mantido local no dispositivo - preferência de exibição)
+           TEMA
         ============================================================ */
         function initDarkModeUI() {
             const isDark = document.documentElement.classList.contains('dark');
@@ -646,7 +641,7 @@
         }
 
         /* ============================================================
-           INICIALIZAÇÃO DA PÁGINA
+           INICIALIZAÇÃO
         ============================================================ */
         document.addEventListener('DOMContentLoaded', () => {
             initDarkModeUI();
@@ -655,7 +650,7 @@
         });
 
         /* ============================================================
-           AUTENTICAÇÃO - LOGIN / CADASTRO / GOOGLE / LOGOUT
+           AUTENTICAÇÃO
         ============================================================ */
         function switchAuthMode(mode) {
             authMode = mode;
@@ -757,7 +752,6 @@
             switchAuthMode('login');
         }
 
-        // Observador do estado de autenticação - dispara em qualquer dispositivo/navegador
         auth.onAuthStateChanged((user) => {
             if (user) {
                 currentUser = user;
@@ -770,6 +764,7 @@
                 state.fixedExpenses = [];
                 state.categories = [];
                 state.goals = [];
+                chatHistory = [];
                 document.getElementById('welcomeScreen').classList.add('hidden');
                 document.getElementById('loginScreen').classList.remove('hidden');
                 resetAuthForm();
@@ -779,9 +774,6 @@
 
         /* ============================================================
            FIRESTORE - CARREGAR E SALVAR DADOS (VINCULADOS AO UID)
-           -> Isso resolve o bug de "duas contas diferentes" entre
-              celular e PC: agora os dados ficam no mesmo documento
-              users/{uid}, e não mais em localStorage/cookie local.
         ============================================================ */
         async function loadUserDataFromFirestore(user) {
             toggleAuthLoading(true);
@@ -801,7 +793,6 @@
                     updateHeaderProfile();
                     renderAll();
                 } else {
-                    // Usuário novo - prepara dados de EXEMPLO já preenchidos
                     state.transactions = defaultTransactions();
                     state.fixedExpenses = defaultFixedExpenses();
                     state.categories = defaultCategories();
@@ -839,7 +830,7 @@
         }
 
         /* ============================================================
-           PERFIL DO USUÁRIO (nome, foto e frase motivacional)
+           PERFIL DO USUÁRIO
         ============================================================ */
         function saveUserProfile(e) {
             e.preventDefault();
@@ -856,8 +847,6 @@
 
                 document.getElementById('welcomeScreen').classList.add('hidden');
                 updateHeaderProfile();
-
-                // Salva o perfil e os dados de exemplo (já preenchidos) de uma vez
                 saveProfileToFirestore().then(() => saveData());
             }
         }
@@ -898,11 +887,7 @@
             const subtext = document.getElementById('editUserSubtext').value.trim() || DEFAULT_SUBTEXT;
 
             if (name) {
-                userProfile = {
-                    ...userProfile,
-                    name,
-                    subtext
-                };
+                userProfile = { ...userProfile, name, subtext };
                 saveProfileToFirestore().then(() => {
                     updateHeaderProfile();
                     closeAllModals();
@@ -911,15 +896,13 @@
         }
 
         /* ============================================================
-           ATUALIZAÇÃO FORÇADA DE CACHE DO APP
+           ATUALIZAÇÃO DE CACHE
         ============================================================ */
         function forceAppUpdate() {
             if (confirm("Deseja buscar a versão mais recente do aplicativo? Seus dados continuarão salvos na nuvem.")) {
                 if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.getRegistrations().then(registrations => {
-                        for (let registration of registrations) {
-                            registration.unregister();
-                        }
+                        for (let registration of registrations) registration.unregister();
                     });
                 }
                 if ('caches' in window) {
@@ -932,7 +915,7 @@
         }
 
         /* ============================================================
-           EXPORTAR E IMPORTAR BACKUP (agora grava no Firestore)
+           BACKUP
         ============================================================ */
         function exportBackupData() {
             const dataToExport = {
@@ -1026,6 +1009,7 @@
         }
 
         function openModal(id) {
+            closeChat();
             document.getElementById('backdrop').classList.add('active');
             document.getElementById(id).classList.add('active');
         }
@@ -1033,6 +1017,7 @@
         function closeAllModals() {
             document.getElementById('backdrop').classList.remove('active');
             document.querySelectorAll('.bottom-sheet').forEach(el => el.classList.remove('active'));
+            closeChat();
         }
 
         /* ============================================================
@@ -1559,6 +1544,277 @@
             state.chart.data.datasets[0].data = data;
             state.chart.data.datasets[0].backgroundColor = colors;
             state.chart.update();
+        }
+
+        /* ============================================================
+           CHATBOT - ASSISTENTE FINANCEIRO (Comandos Inteligentes)
+           -> Interpreta frases simples e executa ações no sistema.
+           -> Quando não entende, oferece botão de contato com suporte.
+        ============================================================ */
+        let chatHistory = [];
+
+        function toggleChat() {
+            const panel = document.getElementById('chatPanel');
+            if (panel.classList.contains('active')) {
+                closeChat();
+            } else {
+                openChat();
+            }
+        }
+
+        function openChat() {
+            closeAllModals();
+            document.getElementById('chatBackdrop').classList.add('active');
+            document.getElementById('chatPanel').classList.add('active');
+
+            if (chatHistory.length === 0) {
+                const firstName = userProfile ? userProfile.name.split(' ')[0] : '';
+                addBotMessage(`Olá${firstName ? ', ' + firstName : ''}! 👋 Sou seu assistente financeiro.<br><br>Você pode me dizer coisas como:<br>💬 "Gastei 50 no mercado"<br>💬 "Recebi 4500 de salário"<br>💬 "Qual meu saldo?"<br>💬 "Quanto gastei esse mês?"<br>💬 "Como está minha meta?"`);
+            }
+
+            setTimeout(() => {
+                const input = document.getElementById('chatInput');
+                if (input) input.focus();
+            }, 300);
+        }
+
+        function closeChat() {
+            const backdrop = document.getElementById('chatBackdrop');
+            const panel = document.getElementById('chatPanel');
+            if (backdrop) backdrop.classList.remove('active');
+            if (panel) panel.classList.remove('active');
+        }
+
+        function addUserMessage(text) {
+            chatHistory.push({ sender: 'user', text });
+            renderChatMessages();
+        }
+
+        function addBotMessage(text, showSupport = false) {
+            chatHistory.push({ sender: 'bot', text, showSupport });
+            renderChatMessages();
+        }
+
+        function renderChatMessages() {
+            const container = document.getElementById('chatMessages');
+            if (!container) return;
+
+            container.innerHTML = chatHistory.map(msg => {
+                if (msg.sender === 'user') {
+                    return `
+                        <div class="flex justify-end mb-3">
+                            <div class="bg-brand-600 text-white text-xs px-3 py-2 rounded-2xl rounded-tr-sm max-w-[80%] break-words">
+                                ${msg.text}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="flex justify-start mb-3">
+                            <div class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 text-xs px-3 py-2 rounded-2xl rounded-tl-sm max-w-[85%] space-y-2">
+                                <div>${msg.text}</div>
+                                ${msg.showSupport ? `
+                                    <button onclick="contactSupport()" class="mt-1 w-full py-2 bg-brand-600 text-white font-bold rounded-lg text-[11px] flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
+                                        <i class="fas fa-envelope"></i> Falar com Suporte
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function handleChatSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            addUserMessage(text);
+            input.value = '';
+
+            setTimeout(() => {
+                const response = processBotMessage(text);
+                addBotMessage(response.text, response.showSupport || false);
+            }, 350);
+        }
+
+        function contactSupport() {
+            const userName = userProfile ? userProfile.name : 'Usuário';
+            const userEmail = currentUser ? currentUser.email : '';
+            const lastMessages = chatHistory.slice(-6)
+                .map(m => `${m.sender === 'user' ? 'Usuário' : 'Bot'}: ${m.text.replace(/<[^>]*>/g, ' ')}`)
+                .join('\n');
+
+            const subject = encodeURIComponent("Suporte AJ-MyFinance");
+            const body = encodeURIComponent(
+                `Nome: ${userName}\nE-mail: ${userEmail}\n\nDescreva sua dúvida ou problema abaixo:\n\n\n\n---\nHistórico recente do chat:\n${lastMessages}`
+            );
+
+            window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+        }
+
+        function normalizeText(str) {
+            return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function parseAmount(str) {
+            if (!str) return null;
+            let clean = str.replace(/r\$/gi, '').trim();
+            clean = clean.replace(/\./g, '').replace(',', '.');
+            const match = clean.match(/(\d+(?:\.\d+)?)/);
+            return match ? parseFloat(match[1]) : null;
+        }
+
+        function findCategoryByText(text) {
+            const norm = normalizeText(text);
+            return state.categories.find(c => norm.includes(normalizeText(c.name))) || null;
+        }
+
+        function guessCategoryForExpense(desc) {
+            const norm = normalizeText(desc);
+            const map = {
+                'mercado': 'Alimentação', 'supermercado': 'Alimentação', 'restaurante': 'Alimentação', 'almoco': 'Alimentação', 'ifood': 'Alimentação', 'padaria': 'Alimentação', 'lanche': 'Alimentação',
+                'uber': 'Transporte', 'gasolina': 'Transporte', 'combustivel': 'Transporte', 'onibus': 'Transporte', 'transporte': 'Transporte', 'taxi': 'Transporte',
+                'aluguel': 'Moradia', 'internet': 'Moradia', 'energia': 'Moradia', 'agua': 'Moradia', 'luz': 'Moradia', 'condominio': 'Moradia',
+                'cinema': 'Lazer', 'lazer': 'Lazer', 'viagem': 'Lazer', 'streaming': 'Lazer', 'festa': 'Lazer', 'bar': 'Lazer'
+            };
+            for (const key in map) {
+                if (norm.includes(key)) {
+                    const found = state.categories.find(c => c.name === map[key]);
+                    if (found) return found.name;
+                }
+            }
+            const fallback = state.categories.find(c => c.name !== 'Salário');
+            return fallback ? fallback.name : (state.categories[0] ? state.categories[0].name : 'Outros');
+        }
+
+        function processBotMessage(rawText) {
+            const text = normalizeText(rawText);
+
+            if (/^(oi|ola|opa|eae|hey|bom dia|boa tarde|boa noite)/.test(text)) {
+                return { text: `Olá! 😊 Como posso te ajudar? Você pode registrar gastos, receitas, ver saldo, limites ou metas.` };
+            }
+
+            if (/suporte|ajuda|problema|bug|erro|reclama|contato|falar com humano|atendente/.test(text)) {
+                return { text: `Entendido! Vou te direcionar para o nosso suporte. Clique no botão abaixo para enviar um e-mail 📧`, showSupport: true };
+            }
+
+            if (/obrigad|valeu|vlw/.test(text)) {
+                return { text: `Por nada! 😄 Estou aqui se precisar de mais alguma coisa.` };
+            }
+
+            let match = rawText.match(/(?:gastei|paguei|comprei|gasto de)\s*(?:r\$)?\s*([\d.,]+)\s*(?:reais)?\s*(?:em|no|na|com|de|do|da)?\s*(.*)/i);
+            if (match) {
+                const amount = parseAmount(match[1]);
+                let desc = match[2] ? match[2].trim() : 'Despesa';
+                desc = desc.replace(/^(o|a|os|as)\s+/i, '');
+                if (!desc) desc = 'Despesa';
+
+                if (amount && amount > 0) {
+                    const categoryName = guessCategoryForExpense(desc);
+                    const newTx = {
+                        id: Date.now().toString(),
+                        type: 'expense',
+                        desc: desc.charAt(0).toUpperCase() + desc.slice(1),
+                        amount: amount,
+                        category: categoryName,
+                        paymentMethod: 'Pix',
+                        date: new Date().toISOString().split('T')[0]
+                    };
+                    state.transactions.unshift(newTx);
+                    saveData();
+                    return { text: `✅ Despesa registrada!<br><b>${newTx.desc}</b> - R$ ${amount.toFixed(2)}<br>Categoria: ${categoryName}` };
+                }
+            }
+
+            match = rawText.match(/(?:recebi|ganhei|entrou)\s*(?:r\$)?\s*([\d.,]+)\s*(?:reais)?\s*(?:de|do|da)?\s*(.*)/i);
+            if (match) {
+                const amount = parseAmount(match[1]);
+                let desc = match[2] ? match[2].trim() : 'Receita';
+                if (!desc) desc = 'Receita';
+
+                if (amount && amount > 0) {
+                    const catFound = findCategoryByText(desc);
+                    const salarioCategory = state.categories.find(c => c.name === 'Salário');
+                    const categoryName = catFound ? catFound.name : (salarioCategory ? salarioCategory.name : (state.categories[0] ? state.categories[0].name : 'Outros'));
+                    const newTx = {
+                        id: Date.now().toString(),
+                        type: 'income',
+                        desc: desc.charAt(0).toUpperCase() + desc.slice(1),
+                        amount: amount,
+                        category: categoryName,
+                        paymentMethod: 'Pix',
+                        date: new Date().toISOString().split('T')[0]
+                    };
+                    state.transactions.unshift(newTx);
+                    saveData();
+                    return { text: `✅ Receita registrada!<br><b>${newTx.desc}</b> - R$ ${amount.toFixed(2)}<br>Categoria: ${categoryName}` };
+                }
+            }
+
+            if (/saldo|quanto tenho|quanto sobrou/.test(text)) {
+                const monthTxs = getFilteredTransactionsForCurrentMonth();
+                const income = monthTxs.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+                const expense = monthTxs.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+                const balance = income - expense;
+                return { text: `💰 Seu saldo em ${monthNames[currentDate.getMonth()]} é de <b>R$ ${balance.toFixed(2)}</b><br>Receitas: R$ ${income.toFixed(2)} | Despesas: R$ ${expense.toFixed(2)}` };
+            }
+
+            if (/quanto gastei|total de gastos|gastos do mes|minhas despesas/.test(text)) {
+                const monthTxs = getFilteredTransactionsForCurrentMonth();
+                const expense = monthTxs.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+                return { text: `📉 Você gastou <b>R$ ${expense.toFixed(2)}</b> em ${monthNames[currentDate.getMonth()]}.` };
+            }
+
+            if (/quanto recebi|total de receitas|minhas receitas/.test(text)) {
+                const monthTxs = getFilteredTransactionsForCurrentMonth();
+                const income = monthTxs.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+                return { text: `📈 Você recebeu <b>R$ ${income.toFixed(2)}</b> em ${monthNames[currentDate.getMonth()]}.` };
+            }
+
+            match = rawText.match(/limite\s*(?:de|em|para)?\s*(.*)/i);
+            if (match && match[1]) {
+                const cat = findCategoryByText(match[1]);
+                if (cat) {
+                    const monthTxs = getFilteredTransactionsForCurrentMonth();
+                    const spent = monthTxs.filter(t => t.category === cat.name && t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+                    const limit = cat.limit || 0;
+                    if (limit > 0) {
+                        const remaining = limit - spent;
+                        return { text: `📊 Categoria <b>${cat.name}</b>:<br>Gasto: R$ ${spent.toFixed(2)} de R$ ${limit.toFixed(2)}<br>${remaining >= 0 ? `Ainda pode gastar: R$ ${remaining.toFixed(2)}` : `⚠️ Você ultrapassou o limite em R$ ${Math.abs(remaining).toFixed(2)}`}` };
+                    } else {
+                        return { text: `A categoria <b>${cat.name}</b> não tem limite definido. Gasto atual: R$ ${spent.toFixed(2)}` };
+                    }
+                }
+            }
+
+            if (/meta|metas/.test(text)) {
+                if (state.goals.length === 0) {
+                    return { text: `Você ainda não tem metas cadastradas. Vá na aba "Metas" para criar uma! 🎯` };
+                }
+                const goalsText = state.goals.map(g => {
+                    const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+                    return `🎯 <b>${g.title}</b>: R$ ${g.current.toFixed(2)} / R$ ${g.target.toFixed(2)} (${pct}%)`;
+                }).join('<br>');
+                return { text: goalsText };
+            }
+
+            if (/despesa[s]? fixa[s]?|contas fixas/.test(text)) {
+                if (state.fixedExpenses.length === 0) {
+                    return { text: `Você ainda não tem despesas fixas cadastradas. Vá na aba "Fixas" para adicionar! 📅` };
+                }
+                const fixedText = state.fixedExpenses.map(f => `📅 <b>${f.desc}</b>: R$ ${f.amount.toFixed(2)} (dia ${f.day})`).join('<br>');
+                return { text: fixedText };
+            }
+
+            return {
+                text: `Desculpe, não entendi muito bem 🤔. Você pode tentar perguntar de outra forma, por exemplo:<br><br>💬 "Gastei 30 no mercado"<br>💬 "Qual meu saldo?"<br>💬 "Como está minha meta?"<br><br>Se preferir, posso te direcionar ao nosso suporte:`,
+                showSupport: true
+            };
         }
     </script>
 </body>
